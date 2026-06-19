@@ -15,66 +15,107 @@ const LS = {
 }
 
 // ── Discomfort taxonomy ───────────────────────────────────────────
-// Each category: label, keywords for news scanning, pain framing
 
 const DEFAULT_CATEGORIES = [
   {
+    id: 'looksmaxxing',
+    label: 'Looksmaxxing & optimization',
+    keywords: ['looksmaxxing', 'looksmax', 'mewing', 'jawline', 'canthal tilt', 'hunter eyes', 'forward growth', 'phenotype', 'looksmatch', 'mogging', 'mog', 'glow up', 'lookspill', 'hardmaxxing', 'softmaxxing'],
+    framing: 'belief that appearance is a project to be engineered',
+  },
+  {
+    id: 'rating',
+    label: 'Appearance rating culture',
+    keywords: ['rate me', 'out of 10', 'truerateme', '1-10', 'above average', 'below average', 'rating', 'rated', 'attractive scale', 'facial rating', 'objective rating', 'looks rating'],
+    framing: 'reducing self-worth to a score',
+  },
+  {
+    id: 'blackpill',
+    label: 'Blackpill & dating market anxiety',
+    keywords: ['blackpill', 'redpill', 'hypergamy', 'dating market', 'smp', 'sexual market value', 'looksmatch', 'out of my league', 'cope', 'looksmaxxing', 'incel', 'femcel', 'volcel', 'genetically inferior', 'genetic lottery'],
+    framing: 'appearance fatalism — the belief that looks determine life outcomes',
+  },
+  {
+    id: 'filter_dysmorphia',
+    label: 'Filter & social media dysmorphia',
+    keywords: ['filter dysmorphia', 'snapchat dysmorphia', 'instagram face', 'facetune', 'faceapp', 'beauty filter', 'edited photos', 'unrealistic standards', 'photoshop', 'airbrushed', 'filtered reality'],
+    framing: 'inability to recognize yourself without digital alteration',
+  },
+  {
+    id: 'surgery',
+    label: 'Cosmetic surgery anxiety',
+    keywords: ['rhinoplasty', 'nose job', 'bbl', 'lip filler', 'botox', 'plastic surgery', 'before after', 'surgical transformation', 'cosmetic procedure', 'filler migration', 'botched', 'mommy makeover', 'jaw filler'],
+    framing: 'willingness to undergo pain to change what you were born with',
+  },
+  {
     id: 'skin',
     label: 'Skin texture & clarity',
-    keywords: ['acne', 'breakout', 'pores', 'skin texture', 'blemish', 'hyperpigmentation', 'dark spots'],
-    framing: 'fear of being looked at',
+    keywords: ['acne', 'breakout', 'pores', 'skin texture', 'blemish', 'hyperpigmentation', 'dark spots', 'fungal acne', 'purging', 'cystic acne', 'hormonal acne', 'scarring'],
+    framing: 'fear of being looked at up close',
   },
   {
     id: 'aging',
     label: 'Aging & time anxiety',
-    keywords: ['anti-aging', 'fine lines', 'wrinkles', 'sagging', 'skin aging', 'collagen loss', 'age spots'],
-    framing: 'loss of control over appearance',
-  },
-  {
-    id: 'body',
-    label: 'Body image',
-    keywords: ['body confidence', 'weight', 'body image', 'cellulite', 'stretch marks', 'body dysmorphia'],
-    framing: 'shame about physical form',
+    keywords: ['anti-aging', 'fine lines', 'wrinkles', 'sagging', 'skin aging', 'collagen loss', 'age spots', 'looking old', 'aged badly', 'aging well', 'preventative botox', 'preventative'],
+    framing: 'loss of control over time showing on the face',
   },
   {
     id: 'hair',
-    label: 'Hair & scalp',
-    keywords: ['hair loss', 'thinning hair', 'hair growth', 'alopecia', 'scalp', 'hairline'],
-    framing: 'visibility of decline',
+    label: 'Hair loss & hairline anxiety',
+    keywords: ['hair loss', 'thinning hair', 'alopecia', 'norwood scale', 'nw3', 'receding hairline', 'finasteride', 'minoxidil', 'hair transplant', 'balding', 'diffuse thinning', 'dht'],
+    framing: 'visible, public, irreversible decline',
+  },
+  {
+    id: 'body',
+    label: 'Body image & dysmorphia',
+    keywords: ['body dysmorphia', 'bdd', 'body image', 'mirror checking', 'appearance preoccupation', 'fat', 'skinny fat', 'skinnyfat', 'cellulite', 'stretch marks', 'bulk cut', 'recomp'],
+    framing: 'the gap between perceived and actual appearance',
   },
   {
     id: 'fatigue',
     label: 'Visible fatigue & stress',
-    keywords: ['dark circles', 'tired eyes', 'stress skin', 'burnout', 'dull skin', 'exhaustion'],
-    framing: 'life showing on the face',
-  },
-  {
-    id: 'confidence',
-    label: 'Social confidence',
-    keywords: ['confidence', 'self-esteem', 'insecurity', 'self-conscious', 'comparison', 'social anxiety'],
-    framing: 'fear of judgment',
-  },
-  {
-    id: 'style',
-    label: 'Style uncertainty',
-    keywords: ['style confidence', 'dress code', 'fashion anxiety', 'wardrobe', 'personal style', 'underdressed'],
-    framing: 'not knowing who you are yet',
+    keywords: ['dark circles', 'tired eyes', 'stress skin', 'burnout skin', 'dull skin', 'hollow eyes', 'sunken', 'periorbital', 'looking tired', 'exhausted face'],
+    framing: 'life showing on the face — the body keeping score',
   },
 ]
 
-// Discomfort signal words for article scoring
+// Discomfort signal vocabulary — the actual language people use
 const DISCOMFORT_WORDS = [
-  'insecurity', 'insecure', 'anxiety', 'anxious', 'shame', 'embarrass', 'self-conscious',
-  'struggle', 'hide', 'hate my', 'fix my', 'problem', 'concern', 'worry', 'fear',
+  // classic
+  'insecurity', 'insecure', 'anxiety', 'anxious', 'shame', 'embarrassed', 'self-conscious',
+  'struggle', 'hide', 'hate my', 'fix my', 'ugly', 'unattractive', 'unfixable',
   'uncomfortable', 'unhappy', 'dissatisfied', 'low confidence', 'feel bad', 'comparison',
+  // appearance-specific
+  'looksmaxxing', 'blackpill', 'cope', 'looksmatch', 'mogging', 'mog', 'genetically',
+  'rating', 'rated', 'out of my league', 'hypergamy', 'filter dysmorphia', 'snapchat dysmorphia',
+  'facetune', 'botched', 'recessed', 'hairline', 'balding', 'norwood',
+  // emotional
+  'devastated', 'destroyed', 'ruined', 'awful', 'terrible', 'humiliated', 'rejected',
+  'invisible', 'not good enough', 'never enough', 'body dysmorphia', 'dysmorphia',
+  // forum language
+  'cant fix', "can't fix", 'born like this', 'genetic', 'surgery', 'desperate',
+  'obsessed with', 'cant stop', "can't stop", 'keep checking', 'mirror', 'notice',
 ]
 
 const ASPIRATION_WORDS = [
-  'glow', 'radiant', 'confident', 'transform', 'improve', 'better', 'achieve',
-  'goal', 'routine', 'best skin', 'healthy', 'thriving', 'love my',
+  'glow', 'radiant', 'confident', 'transform', 'improve', 'achieve',
+  'best skin', 'healthy', 'thriving', 'love my', 'self-love', 'acceptance',
+  'embracing', 'routine', 'results', 'progress', 'before after',
 ]
 
-// ── Data fetcher ──────────────────────────────────────────────────
+// Reddit subreddits to scan — no API key needed (public JSON)
+const REDDIT_SUBS = [
+  { sub: 'looksmaxxing',      label: 'r/looksmaxxing' },
+  { sub: 'Vindicta',          label: 'r/Vindicta' },
+  { sub: 'truerateme',        label: 'r/truerateme' },
+  { sub: 'SkincareAddiction', label: 'r/SkincareAddiction' },
+  { sub: 'HairTransplants',   label: 'r/HairTransplants' },
+  { sub: 'PlasticSurgery',    label: 'r/PlasticSurgery' },
+  { sub: 'BodyDysmorphia',    label: 'r/BodyDysmorphia' },
+  { sub: 'selfimprovement',   label: 'r/selfimprovement' },
+]
+
+// ── Data fetchers ─────────────────────────────────────────────────
 
 async function fetchSignalArticles(key, query) {
   if (!key) return []
@@ -85,6 +126,31 @@ async function fetchSignalArticles(key, query) {
   const json = await res.json()
   if (json.status !== 'ok') throw new Error(json.message)
   return json.articles ?? []
+}
+
+async function fetchRedditSub(sub) {
+  try {
+    const res = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=25`, {
+      headers: { 'Accept': 'application/json' },
+    })
+    if (!res.ok) return []
+    const json = await res.json()
+    return (json.data?.children ?? []).map(c => ({
+      title:       c.data.title,
+      description: c.data.selftext?.slice(0, 280) ?? '',
+      url:         `https://reddit.com${c.data.permalink}`,
+      publishedAt: new Date(c.data.created_utc * 1000).toISOString(),
+      source:      { name: `r/${sub}` },
+      _reddit:     true,
+      score:       c.data.score,
+      numComments: c.data.num_comments,
+    }))
+  } catch { return [] }
+}
+
+async function fetchAllReddit() {
+  const results = await Promise.all(REDDIT_SUBS.map(({ sub }) => fetchRedditSub(sub)))
+  return results.flat()
 }
 
 // ── Scoring engine ────────────────────────────────────────────────
@@ -511,27 +577,43 @@ function Panel({ title, sub, children, action }) {
 
 // ── Main ──────────────────────────────────────────────────────────
 
-const SCAN_QUERY = 'beauty skincare insecurity confidence self-esteem appearance wellness'
+const SCAN_QUERY = 'looksmaxxing insecurity appearance anxiety beauty self-esteem filter dysmorphia cosmetic surgery glow up'
 
 export default function GlowUpDashboard() {
-  const [newsKey, setNewsKey] = useState(() => LS.get('ritualwear_news_key', null))
-  const [articles, setArticles] = useState([])
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState(null)
-  const [categories] = useState(DEFAULT_CATEGORIES)
-  const [tab, setTab] = useState('signals') // 'signals' | 'feed'
+  const [newsKey, setNewsKey]     = useState(() => LS.get('ritualwear_news_key', null))
+  const [newsArticles, setNews]   = useState([])
+  const [redditPosts, setReddit]  = useState([])
+  const [loading, setLoading]     = useState(false)
+  const [redditLoading, setRL]    = useState(false)
+  const [error, setError]         = useState(null)
+  const [categories]              = useState(DEFAULT_CATEGORIES)
+  const [tab, setTab]             = useState('signals')
+  const [sourceFilter, setSource] = useState('all') // 'all' | 'news' | 'reddit'
 
-  const loadArticles = useCallback(async () => {
+  const articles = sourceFilter === 'news'   ? newsArticles
+                 : sourceFilter === 'reddit' ? redditPosts
+                 : [...newsArticles, ...redditPosts]
+
+  const loadNews = useCallback(async () => {
     if (!newsKey) return
     setLoading(true); setError(null)
-    try { setArticles(await fetchSignalArticles(newsKey, SCAN_QUERY)) }
+    try { setNews(await fetchSignalArticles(newsKey, SCAN_QUERY)) }
     catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }, [newsKey])
 
-  useEffect(() => { loadArticles() }, [newsKey])
+  const loadReddit = useCallback(async () => {
+    setRL(true)
+    try { setReddit(await fetchAllReddit()) }
+    catch { /* silently degrade */ }
+    finally { setRL(false) }
+  }, [])
+
+  useEffect(() => { loadNews() }, [newsKey])
+  useEffect(() => { loadReddit() }, [])
 
   const saveKey = (k) => { setNewsKey(k); LS.set('ritualwear_news_key', k) }
+  const rescan  = () => { loadNews(); loadReddit() }
 
   const discomfortIndex = computeDiscomfortIndex(articles)
 
@@ -560,16 +642,22 @@ export default function GlowUpDashboard() {
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-            {newsKey && (
-              <button onClick={() => loadArticles()} style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-muted2)', background: 'none', border: '1px solid var(--c-border-2)', padding: '0.3rem 0.75rem', borderRadius: '4px', cursor: 'pointer' }}>
-                {loading ? 'scanning…' : '↻ rescan'}
-              </button>
-            )}
+            <button onClick={rescan} style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-muted2)', background: 'none', border: '1px solid var(--c-border-2)', padding: '0.3rem 0.75rem', borderRadius: '4px', cursor: 'pointer' }}>
+              {loading || redditLoading ? 'scanning…' : '↻ rescan'}
+            </button>
             <ThemeDropdown />
           </div>
         </div>
 
-        {!newsKey && <KeyGate onSave={saveKey} />}
+        {!newsKey && (
+          <div style={{ marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'center', padding: '0.85rem 1.15rem', background: 'var(--c-surface-1)', borderRadius: '0.75rem', border: '1px solid var(--c-border-2)', flexWrap: 'wrap' }}>
+            <p style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-muted2)', flex: 1 }}>
+              Reddit data loading now — no key needed. Add a NewsAPI key for media coverage too.
+            </p>
+            <button onClick={() => setSource('reddit')} style={{ ...mono, fontSize: '0.52rem', color: 'var(--c-up)', background: 'var(--c-up-subtle)', border: '1px solid var(--c-up-border)', padding: '0.25rem 0.65rem', borderRadius: '4px', cursor: 'pointer' }}>view reddit signals</button>
+            <KeyGate onSave={saveKey} />
+          </div>
+        )}
         {error && <p style={{ ...mono, fontSize: '0.65rem', color: 'var(--c-accent)', marginBottom: '1rem' }}>{error}</p>}
 
         {/* Main layout */}
@@ -583,18 +671,44 @@ export default function GlowUpDashboard() {
               <PainAspirationBar articles={articles} loading={loading && !articles.length} />
             </Panel>
 
-            <Panel title="Signal Source" sub={articles.length ? `${articles.length} articles scanned` : '—'}>
-              <p style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-muted)', lineHeight: 1.65 }}>
-                Scanning for: insecurity, shame, anxiety, hiding, fixing — versus glow, confidence, transform, achieve.
-              </p>
-              <div style={{ marginTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <Panel title="Signal Sources" sub={`${newsArticles.length} news · ${redditPosts.length} reddit posts`}>
+              {/* source filter */}
+              <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.85rem' }}>
                 {[
-                  { label: 'articles scanned', val: articles.length },
-                  { label: 'pain signals found', val: articles.reduce((s, a) => s + scoreArticle(a).dis, 0) },
+                  { key: 'all',    label: `All (${newsArticles.length + redditPosts.length})` },
+                  { key: 'news',   label: `News (${newsArticles.length})` },
+                  { key: 'reddit', label: `Reddit (${redditPosts.length})` },
+                ].map(s => (
+                  <button key={s.key} onClick={() => setSource(s.key)} style={{
+                    ...mono, fontSize: '0.5rem', padding: '0.22rem 0.6rem', borderRadius: '12px', cursor: 'pointer',
+                    background: sourceFilter === s.key ? 'var(--c-accent-medium)' : 'var(--c-surface-2)',
+                    border: sourceFilter === s.key ? '1px solid var(--c-accent-border)' : '1px solid var(--c-border-1)',
+                    color: sourceFilter === s.key ? 'var(--c-accent)' : 'var(--c-muted2)',
+                  }}>{s.label}</button>
+                ))}
+              </div>
+
+              {/* subreddit list */}
+              <div style={{ marginBottom: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {REDDIT_SUBS.map(({ sub, label }) => {
+                  const count = redditPosts.filter(p => p.source?.name === `r/${sub}`).length
+                  return (
+                    <div key={sub} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ ...mono, fontSize: '0.52rem', color: count > 0 ? 'var(--c-muted2)' : 'var(--c-dim)' }}>{label}</span>
+                      <span style={{ ...mono, fontSize: '0.52rem', color: count > 0 ? 'var(--c-up)' : 'var(--c-dim)' }}>{redditLoading ? '…' : count}</span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderTop: '1px solid var(--c-border-1)', paddingTop: '0.75rem' }}>
+                {[
+                  { label: 'total signals', val: articles.length },
+                  { label: 'pain signals', val: articles.reduce((s, a) => s + scoreArticle(a).dis, 0) },
                   { label: 'aspiration signals', val: articles.reduce((s, a) => s + scoreArticle(a).asp, 0) },
-                  { label: 'signal density', val: articles.length ? `${(articles.reduce((s, a) => s + scoreArticle(a).dis, 0) / articles.length).toFixed(1)}/article` : '—' },
+                  { label: 'density', val: articles.length ? `${(articles.reduce((s, a) => s + scoreArticle(a).dis, 0) / articles.length).toFixed(1)}/post` : '—' },
                 ].map(({ label, val }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid var(--c-border-1)', paddingBottom: '0.3rem' }}>
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <span style={{ ...mono, fontSize: '0.52rem', color: 'var(--c-muted)' }}>{label}</span>
                     <span style={{ ...mono, fontSize: '0.6rem', color: 'var(--c-fg)' }}>{val}</span>
                   </div>
@@ -641,23 +755,36 @@ export default function GlowUpDashboard() {
               <div style={{ padding: '1.25rem' }}>
                 {tab === 'signals' && <SignalFeed articles={articles} loading={loading} />}
                 {tab === 'feed' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '420px', overflowY: 'auto' }}>
-                    {articles.slice(0, 30).map((a, i) => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '420px', overflowY: 'auto' }}>
+                    {articles.slice(0, 40).map((a, i) => (
                       <motion.a
                         key={i}
                         href={a.url} target="_blank" rel="noreferrer"
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.015 }}
                         style={{
-                          display: 'block', padding: '0.6rem 0.8rem',
-                          background: 'var(--c-surface-2)', borderRadius: '0.4rem',
-                          border: '1px solid var(--c-border-1)', textDecoration: 'none',
+                          display: 'block', padding: '0.55rem 0.75rem',
+                          background: a._reddit ? 'var(--c-surface-2)' : 'var(--c-surface-1)',
+                          borderRadius: '0.4rem', textDecoration: 'none',
+                          border: a._reddit ? '1px solid var(--c-border-2)' : '1px solid var(--c-border-1)',
+                          transition: 'border-color 0.15s',
                         }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--c-accent-border)'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = a._reddit ? 'var(--c-border-2)' : 'var(--c-border-1)'}
                       >
-                        <p style={{ ...sans, fontSize: '0.74rem', color: 'var(--c-fg)', lineHeight: 1.3, marginBottom: '0.2rem' }}>{a.title}</p>
-                        <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-muted)' }}>{a.source?.name} · {timeAgo(a.publishedAt)}</span>
+                        <p style={{ ...sans, fontSize: '0.74rem', color: 'var(--c-fg)', lineHeight: 1.3, marginBottom: '0.22rem' }}>{a.title}</p>
+                        <div style={{ display: 'flex', gap: '0.55rem', alignItems: 'center' }}>
+                          {a._reddit && <span style={{ ...mono, fontSize: '0.47rem', color: 'var(--c-amber)', background: 'rgba(196,168,90,0.08)', border: '1px solid rgba(196,168,90,0.2)', padding: '0.06rem 0.35rem', borderRadius: '6px' }}>reddit</span>}
+                          <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-muted)' }}>{a.source?.name}</span>
+                          <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-dim)' }}>{timeAgo(a.publishedAt)}</span>
+                          {a._reddit && a.score > 0 && <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-muted2)' }}>▲ {a.score.toLocaleString()}</span>}
+                          {a._reddit && a.numComments > 0 && <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-muted2)' }}>💬 {a.numComments}</span>}
+                          <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-accent)', marginLeft: 'auto' }}>↗</span>
+                        </div>
                       </motion.a>
                     ))}
-                    {!articles.length && !loading && <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)' }}>add NewsAPI key to load articles</p>}
+                    {!articles.length && !loading && !redditLoading && (
+                      <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)' }}>loading…</p>
+                    )}
                   </div>
                 )}
               </div>

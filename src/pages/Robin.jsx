@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { supabase } from '../lib/supabase'
 
@@ -7,12 +8,12 @@ const ADMIN_EMAIL = 'ADMIN_EMAIL_REDACTED'
 const MIN_COHORT  = 50
 
 const SERVICES = [
-  { name: 'Ritualware',   sub: 'marketing',  url: 'https://ritualware.app/health.json' },
-  { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json' },
-  { name: 'Glow Up',      sub: 'pyramid',     url: 'https://glowup.ritualware.app/health.json' },
-  { name: 'Ritualwhere?', sub: 'map',         url: 'https://where.ritualware.app/health.json' },
-  { name: "m'atelier",    sub: 'studio',      url: 'https://studio.ritualware.app/health.json' },
-  { name: 'Ritualwealth', sub: 'fire',        url: 'https://wealth.ritualware.app/health.json' },
+  { name: 'Ritualware',   sub: 'marketing',  url: 'https://ritualware.app/health.json',          route: null },
+  { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json',    route: null },
+  { name: 'Glow Up',      sub: 'pyramid',     url: 'https://glowup.ritualware.app/health.json',  route: null },
+  { name: 'Ritualwhere?', sub: 'map',         url: 'https://where.ritualware.app/health.json',   route: null },
+  { name: "m'atelier",    sub: 'studio',      url: 'https://studio.ritualware.app/health.json',  route: null },
+  { name: 'Ritualwealth', sub: 'fire',        url: 'https://wealth.ritualware.app/health.json',  route: '/app/wealth' },
 ]
 
 const LOG_LIMIT = 60
@@ -53,7 +54,7 @@ function GlowDot({ status }) {
 
 // ── Service tile ────────────────────────────────────────────────
 
-function ServiceTile({ svc, i }) {
+function ServiceTile({ svc, i, clickable }) {
   const statusLabel = { up: 'operational', down: 'down', degraded: 'degraded', loading: 'checking…' }[svc.status] ?? 'checking…'
   const statusColor = { up: '#6AAD8A', down: '#C4717A', degraded: '#C4A85A', loading: '#2a2018' }[svc.status] ?? '#2a2018'
   return (
@@ -65,6 +66,7 @@ function ServiceTile({ svc, i }) {
         borderRadius: '0.75rem',
         border: `1px solid ${svc.status === 'down' ? 'rgba(196,113,122,0.25)' : 'rgba(255,255,255,0.06)'}`,
         display: 'flex', flexDirection: 'column', gap: '0.6rem',
+        cursor: clickable ? 'pointer' : 'default',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -74,7 +76,7 @@ function ServiceTile({ svc, i }) {
         <GlowDot status={svc.status} />
       </div>
       <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.1rem', color: '#FAF7F2', lineHeight: 1 }}>
-        {svc.name}
+        {svc.name}{clickable && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#5a5048', marginLeft: '0.4rem' }}>↗</span>}
       </p>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
         <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: statusColor, letterSpacing: '0.1em' }}>
@@ -222,7 +224,11 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
-        {services.map((svc, i) => <ServiceTile key={svc.url} svc={svc} i={i} />)}
+        {services.map((svc, i) =>
+          svc.route
+            ? <Link key={svc.url} to={svc.route} style={{ textDecoration: 'none' }}><ServiceTile svc={svc} i={i} clickable /></Link>
+            : <ServiceTile key={svc.url} svc={svc} i={i} />
+        )}
       </div>
 
       <ErrorLog entries={errorLog} />

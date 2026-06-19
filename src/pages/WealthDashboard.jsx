@@ -353,137 +353,150 @@ function SECPanel({ items }) {
 }
 
 
-// ── Apple Calendar (ICS) ─────────────────────────────────────────
+// ── Itinerary widget ─────────────────────────────────────────────
 
-function parseICS(text) {
-  const events = []
-  const vevents = text.split('BEGIN:VEVENT').slice(1)
-  vevents.forEach(block => {
-    const content = block.slice(0, block.indexOf('END:VEVENT'))
-    // unfold continuation lines
-    const unfolded = content.replace(/\r?\n[ \t]/g, '')
-    const get = key => {
-      const m = unfolded.match(new RegExp(`(?:^|\\n)${key}[^:;\\n]*[;:][^:\\n]*?:?([^\\n]+)`, 'i'))
-      return m ? m[1].trim().replace(/\\n/g, '\n').replace(/\\,/g, ',') : null
-    }
-    const getDateTime = key => {
-      const m = unfolded.match(new RegExp(`(?:^|\\n)${key}[^:\\n]*:([^\\n]+)`, 'i'))
-      if (!m) return null
-      const raw = m[1].trim()
-      // 20240619 or 20240619T140000 or 20240619T140000Z
-      if (raw.length === 8) return new Date(raw.slice(0,4)+'-'+raw.slice(4,6)+'-'+raw.slice(6,8)+'T00:00:00')
-      const y=raw.slice(0,4),mo=raw.slice(4,6),d=raw.slice(6,8),h=raw.slice(9,11)||'00',mi=raw.slice(11,13)||'00',s=raw.slice(13,15)||'00'
-      return new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}${raw.endsWith('Z')?'Z':''}`)
-    }
-    const summary = get('SUMMARY')
-    const start   = getDateTime('DTSTART')
-    if (!summary || !start || isNaN(start)) return
-    events.push({ summary, start, end: getDateTime('DTEND'), location: get('LOCATION') })
-  })
-  return events.sort((a, b) => a.start - b.start)
-}
+const TODAY_KEY = () => `robin_itinerary_${new Date().toISOString().slice(0, 10)}`
 
-function CalendarPanel({ icsUrl, onSetUrl }) {
-  const [editing, setEditing]   = useState(false)
-  const [val, setVal]           = useState(icsUrl ?? '')
-  const [events, setEvents]     = useState([])
-  const [calError, setCalError] = useState(null)
-  const [loading, setLoading]   = useState(false)
+function ItineraryWidget() {
+  const [items, setItems]     = useState(() => LS.get(TODAY_KEY(), []))
+  const [time, setTime]       = useState('')
+  const [note, setNote]       = useState('')
+  const [editingIdx, setEditingIdx] = useState(null)
+  const [editNote, setEditNote]     = useState('')
+  const noteRef = useRef(null)
 
+  // reset each new day
   useEffect(() => {
-    if (!icsUrl) return
-    setLoading(true)
-    setCalError(null)
-    // webcal:// → https://
-    const url = icsUrl.replace(/^webcal:\/\//i, 'https://')
-    fetch(url)
-      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.text() })
-      .then(text => {
-        const parsed = parseICS(text)
-        const now = new Date()
-        setEvents(parsed.filter(e => e.start >= now || (e.end && e.end >= now)).slice(0, 20))
-        setLoading(false)
-      })
-      .catch(e => { setCalError(e.message); setLoading(false) })
-  }, [icsUrl])
+    const key = TODAY_KEY()
+    setItems(LS.get(key, []))
+  }, [])
 
-  const fmtEvent = e => {
-    const d = e.start
-    const date = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-    const time = d.getHours() === 0 && d.getMinutes() === 0 ? 'all day' : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-    return { date, time }
+  const persist = (next) => { setItems(next); LS.set(TODAY_KEY(), next) }
+
+  const add = () => {
+    const t = note.trim()
+    if (!t) return
+    const entry = { time: time.trim() || null, note: t, done: false, id: Date.now() }
+    const next = [...items, entry].sort((a, b) => {
+      if (!a.time && !b.time) return 0
+      if (!a.time) return 1
+      if (!b.time) return -1
+      return a.time.localeCompare(b.time)
+    })
+    persist(next)
+    setTime(''); setNote('')
+    noteRef.current?.focus()
   }
 
-  if (!icsUrl || editing) return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-      <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: '#C8BFB0', lineHeight: 1.6 }}>
-        In Apple Calendar, right-click a calendar → <em>Share Calendar…</em> → enable <em>Public Calendar</em> → copy the link. Paste the <code style={{ ...mono, fontSize: '0.75rem', color: accent }}>webcal://</code> URL below.
-      </p>
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <input
-          value={val}
-          onChange={e => setVal(e.target.value)}
-          placeholder="webcal://p46-caldav.icloud.com/published/2/..."
-          style={{
-            flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: '4px', padding: '0.6rem 0.9rem',
-            ...mono, fontSize: '0.6rem', color: fg, outline: 'none',
-          }}
-        />
-        <button onClick={() => { onSetUrl(val.trim()); setEditing(false) }}
-          style={{ ...mono, fontSize: '0.65rem', color: fg, background: 'rgba(196,113,122,0.15)', border: `1px solid ${accent}`, padding: '0.6rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
-          save
-        </button>
-      </div>
-    </div>
-  )
+  const toggle = id => persist(items.map(it => it.id === id ? { ...it, done: !it.done } : it))
+  const remove = id => persist(items.filter(it => it.id !== id))
+  const saveEdit = id => {
+    persist(items.map(it => it.id === id ? { ...it, note: editNote } : it))
+    setEditingIdx(null)
+  }
+  const clearDone = () => persist(items.filter(it => !it.done))
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const done = items.filter(i => i.done).length
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
-        <button onClick={() => setEditing(true)} style={{ ...mono, fontSize: '0.55rem', color: dim, background: 'none', border: 'none', cursor: 'pointer' }}>
-          edit ↗
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1rem' }}>
+        <p style={{ ...mono, fontSize: '0.6rem', color: muted }}>{today}</p>
+        {done > 0 && (
+          <button onClick={clearDone} style={{ ...mono, fontSize: '0.55rem', color: dim, background: 'none', border: 'none', cursor: 'pointer' }}>
+            clear done ({done})
+          </button>
+        )}
+      </div>
+
+      {/* add row */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+        <input
+          value={time}
+          onChange={e => setTime(e.target.value)}
+          placeholder="9:00"
+          style={{
+            width: '56px', flexShrink: 0,
+            background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px', padding: '0.5rem 0.6rem',
+            ...mono, fontSize: '0.7rem', color: fg, outline: 'none',
+          }}
+        />
+        <input
+          ref={noteRef}
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && add()}
+          placeholder="add to your day…"
+          style={{
+            flex: 1,
+            background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px', padding: '0.5rem 0.75rem',
+            fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: fg, outline: 'none',
+          }}
+        />
+        <button onClick={add}
+          style={{ ...mono, fontSize: '0.65rem', color: accent, background: 'none', border: `1px solid ${accent}`, borderRadius: '4px', padding: '0.5rem 0.85rem', cursor: 'pointer', flexShrink: 0 }}>
+          +
         </button>
       </div>
 
-      {loading && <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading calendar…</p>}
-
-      {calError && (
-        <div>
-          <p style={{ ...mono, fontSize: '0.6rem', color: accent, marginBottom: '0.5rem' }}>
-            could not fetch calendar — iCloud may block cross-origin requests
-          </p>
-          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: muted, lineHeight: 1.5 }}>
-            Try making the calendar public in iCloud.com settings, or open
-            <a href="https://www.icloud.com/calendar" target="_blank" rel="noreferrer" style={{ color: accent, marginLeft: '0.25rem' }}>iCloud Calendar ↗</a>
-          </p>
-        </div>
+      {/* items */}
+      {items.length === 0 && (
+        <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>nothing yet — add something above</p>
       )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+        {items.map((it) => (
+          <div key={it.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.55rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            {/* checkbox */}
+            <button
+              onClick={() => toggle(it.id)}
+              style={{
+                flexShrink: 0, marginTop: '2px',
+                width: 14, height: 14, borderRadius: '3px',
+                border: it.done ? `1px solid #6AAD8A` : '1px solid rgba(255,255,255,0.2)',
+                background: it.done ? 'rgba(106,173,138,0.2)' : 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {it.done && <span style={{ color: '#6AAD8A', fontSize: '9px', lineHeight: 1 }}>✓</span>}
+            </button>
 
-      {!loading && !calError && events.length === 0 && (
-        <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>no upcoming events</p>
-      )}
+            {/* time */}
+            {it.time && (
+              <span style={{ ...mono, fontSize: '0.6rem', color: dim, flexShrink: 0, marginTop: '2px', width: '38px' }}>{it.time}</span>
+            )}
 
-      {!loading && events.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0rem', maxHeight: '420px', overflowY: 'auto' }}>
-          {events.map((e, i) => {
-            const { date, time } = fmtEvent(e)
-            const isToday = e.start.toDateString() === new Date().toDateString()
-            return (
-              <div key={i} style={{ display: 'flex', gap: '1rem', padding: '0.65rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'flex-start' }}>
-                <div style={{ flexShrink: 0, width: '80px' }}>
-                  <p style={{ ...mono, fontSize: '0.55rem', color: isToday ? accent : dim, letterSpacing: '0.05em' }}>{date}</p>
-                  <p style={{ ...mono, fontSize: '0.6rem', color: isToday ? fg : muted }}>{time}</p>
-                </div>
-                <div>
-                  <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: isToday ? fg : '#C8BFB0', lineHeight: 1.3 }}>{e.summary}</p>
-                  {e.location && <p style={{ ...mono, fontSize: '0.55rem', color: dim, marginTop: '0.2rem' }}>{e.location}</p>}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+            {/* note — click to edit inline */}
+            <div style={{ flex: 1 }}>
+              {editingIdx === it.id ? (
+                <input
+                  autoFocus
+                  value={editNote}
+                  onChange={e => setEditNote(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveEdit(it.id); if (e.key === 'Escape') setEditingIdx(null) }}
+                  onBlur={() => saveEdit(it.id)}
+                  style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: `1px solid ${accent}`, outline: 'none', fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: fg, padding: '0 0 2px' }}
+                />
+              ) : (
+                <span
+                  onClick={() => { setEditingIdx(it.id); setEditNote(it.note) }}
+                  style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: it.done ? dim : '#C8BFB0', cursor: 'text', textDecoration: it.done ? 'line-through' : 'none', lineHeight: 1.4 }}
+                >
+                  {it.note}
+                </span>
+              )}
+            </div>
+
+            {/* remove */}
+            <button onClick={() => remove(it.id)}
+              style={{ ...mono, fontSize: '0.6rem', color: dim, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, marginTop: '2px' }}>
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -810,7 +823,6 @@ export default function WealthDashboard() {
   const [apiKey, setApiKey]         = useState(() => LS.get('robin_finnhub_key', null))
   const [watchlist, setWatchlist]   = useState(() => LS.get('robin_watchlist', DEFAULT_WATCHLIST))
   const [cities, setCities]         = useState(() => LS.get('robin_clock_cities', DEFAULT_CITIES))
-  const [icsUrl, setIcsUrl]         = useState(() => LS.get('robin_cal_url', null))
   const [selected, setSelected]     = useState(watchlist[0])
   const [quotes, setQuotes]         = useState({})
   const [news, setNews]             = useState([])
@@ -838,10 +850,6 @@ export default function WealthDashboard() {
     LS.set('robin_clock_cities', list)
   }, [])
 
-  const saveIcsUrl = useCallback(url => {
-    setIcsUrl(url)
-    LS.set('robin_cal_url', url)
-  }, [])
 
   // fetch all quotes
   const fetchAllQuotes = useCallback(async () => {
@@ -942,8 +950,8 @@ export default function WealthDashboard() {
                 : <NewsFeed items={news} />}
             </Panel>
           )}
-          <Panel title="calendar // apple">
-            <CalendarPanel icsUrl={icsUrl} onSetUrl={saveIcsUrl} />
+          <Panel title="itinerary // today">
+            <ItineraryWidget />
           </Panel>
         </div>
 

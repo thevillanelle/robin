@@ -5,6 +5,7 @@ import WealthDashboard from './pages/WealthDashboard'
 import RitualwearDashboard from './pages/RitualwearDashboard'
 import GlowUpDashboard from './pages/GlowUpDashboard'
 import RitualwhereDashboard from './pages/RitualwhereDashboard'
+import AtelierDashboard from './pages/AtelierDashboard'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/app/wear"      element={<RitualwearDashboard />} />
         <Route path="/app/glowup"    element={<GlowUpDashboard />} />
         <Route path="/app/where"     element={<RitualwhereDashboard />} />
+        <Route path="/app/atelier"   element={<AtelierDashboard />} />
       </Routes>
     </BrowserRouter>
   )

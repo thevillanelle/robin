@@ -13,7 +13,7 @@ const SERVICES = [
   { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json',    route: '/app/wear' },
   { name: 'Glow Up',      sub: 'pyramid',     url: 'https://glowup.ritualware.app/health.json',  route: '/app/glowup' },
   { name: 'Ritualwhere?', sub: 'map',         url: 'https://where.ritualware.app/health.json',   route: '/app/where' },
-  { name: "m'atelier",    sub: 'studio',      url: 'https://studio.ritualware.app/health.json',  route: null },
+  { name: "m'atelier",    sub: 'studio',      url: 'https://studio.ritualware.app/health.json',  route: '/app/atelier' },
   { name: 'Ritualwealth', sub: 'fire',        url: 'https://wealth.ritualware.app/health.json',  route: '/app/wealth' },
 ]
 

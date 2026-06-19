@@ -116,15 +116,19 @@ function ApiKeySetup({ onSave }) {
 
 // ── Live ticker bar ──────────────────────────────────────────────
 
-function TickerBar({ quotes }) {
+function TickerBar({ quotes, selected, onSelect }) {
   if (!quotes.length) return null
   const band = [...quotes, ...quotes, ...quotes]
   return (
-    <div style={{ overflow: 'hidden', borderTop: `1px solid rgba(255,255,255,0.05)`, borderBottom: `1px solid rgba(255,255,255,0.05)`, padding: '0.55rem 0', marginBottom: '1.5rem' }}>
+    <div style={{ overflow: 'hidden', borderTop: `1px solid rgba(255,255,255,0.05)`, borderBottom: `1px solid rgba(255,255,255,0.05)`, padding: '0.55rem 0', marginBottom: '1.5rem', cursor: 'pointer' }}>
       <div style={{ display: 'flex', gap: '3.5rem', whiteSpace: 'nowrap', animation: 'ticker-scroll 50s linear infinite' }}>
         {band.map((q, i) => (
-          <span key={i} style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'baseline' }}>
-            <span style={{ ...mono, fontSize: '0.65rem', color: fg }}>{q.ticker}</span>
+          <span
+            key={i}
+            onClick={() => onSelect(q.ticker)}
+            style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'baseline', opacity: selected && selected !== q.ticker ? 0.45 : 1, transition: 'opacity 0.2s' }}
+          >
+            <span style={{ ...mono, fontSize: '0.65rem', color: selected === q.ticker ? accent : fg }}>{q.ticker}</span>
             <span style={{ ...mono, fontSize: '0.65rem', color: fg }}>{fmtPrice(q.c)}</span>
             <span style={{ ...mono, fontSize: '0.6rem', color: q.dp >= 0 ? '#6AAD8A' : accent }}>{fmtPct(q.dp)}</span>
           </span>
@@ -892,29 +896,17 @@ export default function WealthDashboard() {
           </div>
         )}
 
-        {/* Live ticker */}
-        {quoteList.length > 0 && <TickerBar quotes={quoteList} />}
+        {/* Live ticker — click any ticker to open its detail */}
+        {quoteList.length > 0 && <TickerBar quotes={quoteList} selected={selected} onSelect={t => setSelected(prev => prev === t ? null : t)} />}
 
-        {/* Main 3-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 220px', gap: '1rem', marginBottom: '1rem', alignItems: 'start' }}>
-
-          {/* Left: watchlist */}
-          <Panel title="watchlist">
-            <Watchlist
-              watchlist={watchlist}
-              quotes={quotes}
-              selected={selected}
-              onSelect={setSelected}
-              onAdd={addTicker}
-              onRemove={removeTicker}
-            />
-          </Panel>
+        {/* Main 2-column layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: '1rem', marginBottom: '1rem', alignItems: 'start' }}>
 
           {/* Center: stock detail */}
-          <Panel title={selected ? `${selected} // analysis` : 'select a ticker'}>
+          <Panel title={selected ? `${selected} // analysis` : 'click any ticker above'}>
             {selected
               ? <StockDetail ticker={selected} quote={quotes[selected]} />
-              : <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>pick a ticker from the watchlist</p>
+              : <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>click a ticker in the bar to pull up its chart, filings, and insider moves</p>
             }
           </Panel>
 

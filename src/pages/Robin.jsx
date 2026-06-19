@@ -15,6 +15,8 @@ const SERVICES = [
   { name: 'Ritualwealth', sub: 'fire',        url: 'https://wealth.ritualware.app/health.json' },
 ]
 
+const LOG_LIMIT = 60
+
 async function checkService(svc) {
   const t0 = performance.now()
   try {
@@ -29,24 +31,31 @@ async function checkService(svc) {
   }
 }
 
-function PulseDot({ status }) {
-  const color = status === 'up' ? '#6AAD8A' : status === 'degraded' ? '#C4A85A' : status === 'down' ? '#C4717A' : '#3a3028'
+// ── Glow dot ────────────────────────────────────────────────────
+
+function GlowDot({ status }) {
+  const cfg = {
+    up:       { color: '#6AAD8A', shadow: '0 0 5px 2px rgba(106,173,138,0.7), 0 0 14px 5px rgba(106,173,138,0.25)' },
+    degraded: { color: '#C4A85A', shadow: '0 0 5px 2px rgba(196,168,90,0.7),  0 0 14px 5px rgba(196,168,90,0.25)' },
+    down:     { color: '#C4717A', shadow: '0 0 5px 2px rgba(196,113,122,0.7), 0 0 14px 5px rgba(196,113,122,0.25)' },
+    loading:  { color: '#2a2018', shadow: 'none' },
+  }[status] ?? { color: '#2a2018', shadow: 'none' }
+
   return (
-    <div style={{ position: 'relative', width: 10, height: 10, flexShrink: 0 }}>
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: '50%', background: color,
-        animation: status === 'up' ? 'pulse-ring 2.5s ease-out infinite' : 'none',
-        opacity: 0.35,
-        transform: 'scale(1)',
-      }} />
-      <div style={{ position: 'absolute', inset: '2px', borderRadius: '50%', background: color }} />
-    </div>
+    <div style={{
+      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+      background: cfg.color,
+      boxShadow: cfg.shadow,
+      transition: 'background 0.6s ease, box-shadow 0.6s ease',
+    }} />
   )
 }
 
+// ── Service tile ────────────────────────────────────────────────
+
 function ServiceTile({ svc, i }) {
-  const statusLabel = svc.status === 'up' ? 'operational' : svc.status === 'down' ? 'down' : svc.status === 'degraded' ? 'degraded' : 'checking…'
-  const statusColor = svc.status === 'up' ? '#6AAD8A' : svc.status === 'down' ? '#C4717A' : svc.status === 'degraded' ? '#C4A85A' : '#3a3028'
+  const statusLabel = { up: 'operational', down: 'down', degraded: 'degraded', loading: 'checking…' }[svc.status] ?? 'checking…'
+  const statusColor = { up: '#6AAD8A', down: '#C4717A', degraded: '#C4A85A', loading: '#2a2018' }[svc.status] ?? '#2a2018'
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -62,7 +71,7 @@ function ServiceTile({ svc, i }) {
         <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#5a5048' }}>
           {svc.sub}
         </p>
-        <PulseDot status={svc.status} />
+        <GlowDot status={svc.status} />
       </div>
       <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.1rem', color: '#FAF7F2', lineHeight: 1 }}>
         {svc.name}
@@ -81,7 +90,90 @@ function ServiceTile({ svc, i }) {
   )
 }
 
-function SystemPanel({ services, checkedAt, onRefresh, refreshing }) {
+// ── Ticker ──────────────────────────────────────────────────────
+
+function Ticker({ services, totalUsers, newToday }) {
+  const liveServices = services.filter(s => s.status !== 'loading')
+  const incidents    = liveServices.filter(s => s.status !== 'up')
+
+  const items = [
+    totalUsers != null   && `${totalUsers.toLocaleString()} total users`,
+    newToday != null     && `+${newToday} new today`,
+    ...liveServices.map(s => `${s.name}  ${s.ms != null ? s.ms + 'ms' : '—'}`),
+    ...incidents.map(s => `⚠  ${s.name.toUpperCase()} ${s.status}${s.code ? ' [' + s.code + ']' : ''}`),
+  ].filter(Boolean)
+
+  if (!items.length) return null
+
+  // duplicate so the loop is seamless
+  const band = [...items, ...items, ...items]
+
+  return (
+    <div style={{ overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '0.55rem 0', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', gap: '4rem', whiteSpace: 'nowrap', animation: 'ticker-scroll 40s linear infinite' }}>
+        {band.map((item, i) => (
+          <span key={i} style={{
+            fontFamily: 'monospace',
+            fontSize: '0.6rem',
+            letterSpacing: '0.12em',
+            color: item.startsWith('⚠') ? '#C4717A' : '#4a4038',
+          }}>
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Error log ───────────────────────────────────────────────────
+
+function ErrorLog({ entries }) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (ref.current) ref.current.scrollTop = 0
+  }, [entries.length])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+      style={{
+        marginTop: '0.75rem',
+        padding: '1.25rem 1.5rem',
+        background: 'rgba(0,0,0,0.35)',
+        borderRadius: '0.75rem',
+        border: '1px solid rgba(255,255,255,0.05)',
+      }}
+    >
+      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C4717A', marginBottom: '0.85rem' }}>
+        event log
+      </p>
+      <div
+        ref={ref}
+        style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}
+      >
+        {entries.length === 0 ? (
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: '#2a2018' }}>no events yet</p>
+        ) : entries.map((e, i) => (
+          <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'baseline' }}>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#3a3028', flexShrink: 0 }}>{e.ts}</span>
+            <span style={{
+              fontFamily: 'monospace', fontSize: '0.6rem',
+              color: e.type === 'error' ? '#C4717A' : e.type === 'recovery' ? '#6AAD8A' : '#5a5048',
+            }}>
+              {e.message}
+            </span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+// ── System panel ────────────────────────────────────────────────
+
+function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clock }) {
   const allUp   = services.length > 0 && services.every(s => s.status === 'up')
   const anyDown = services.some(s => s.status === 'down')
 
@@ -89,7 +181,7 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing }) {
     <motion.div
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
       style={{
-        marginBottom: '2rem',
+        marginBottom: '0',
         padding: '2rem',
         background: 'rgba(255,255,255,0.02)',
         borderRadius: '1rem',
@@ -106,6 +198,9 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing }) {
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
+          {clock && (
+            <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#FAF7F2', letterSpacing: '0.08em' }}>{clock}</p>
+          )}
           <button
             onClick={onRefresh}
             disabled={refreshing}
@@ -129,6 +224,8 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
         {services.map((svc, i) => <ServiceTile key={svc.url} svc={svc} i={i} />)}
       </div>
+
+      <ErrorLog entries={errorLog} />
     </motion.div>
   )
 }
@@ -226,6 +323,14 @@ function Panel({ title, children, span = 1 }) {
 
 const fmt = (s) => s ? String(s).replace(/_/g, ' ') : '—'
 
+function logEntry(type, message) {
+  return {
+    ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    type,
+    message,
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────
 
 export default function Robin() {
@@ -233,20 +338,56 @@ export default function Robin() {
   const [data, setData]           = useState(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
+  const [newToday, setNewToday]   = useState(null)
 
   // system health state
   const [services, setServices]   = useState(SERVICES.map(s => ({ ...s, status: 'loading', ms: null })))
   const [checkedAt, setCheckedAt] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
-  const intervalRef = useRef(null)
+  const [errorLog, setErrorLog]   = useState([])
+  const [clock, setClock]         = useState('')
+  const prevStatuses              = useRef({})
+  const intervalRef               = useRef(null)
 
   useEffect(() => { initialize() }, [])
+
+  // live clock
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date()
+      setClock(now.toLocaleString([], {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      }))
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const runHealthChecks = useCallback(async () => {
     setRefreshing(true)
     const results = await Promise.all(SERVICES.map(checkService))
+    const prev = prevStatuses.current
+    const newEntries = []
+
+    results.forEach(r => {
+      const was = prev[r.url]
+      if (r.status !== 'up' && was !== r.status) {
+        newEntries.push(logEntry('error', `${r.name} — ${r.status}${r.code ? ' [' + r.code + ']' : ''} (${r.ms}ms)`))
+      } else if (r.status === 'up' && was && was !== 'up' && was !== 'loading') {
+        newEntries.push(logEntry('recovery', `${r.name} — recovered (${r.ms}ms)`))
+      }
+      prev[r.url] = r.status
+    })
+
     setServices(results)
     setCheckedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+    if (newEntries.length) {
+      setErrorLog(log => [...newEntries, ...log].slice(0, LOG_LIMIT))
+    } else if (Object.keys(prev).length === SERVICES.length) {
+      setErrorLog(log => [logEntry('info', `health check passed — all ${results.filter(r => r.status === 'up').length}/${SERVICES.length} services up`), ...log].slice(0, LOG_LIMIT))
+    }
     setRefreshing(false)
   }, [])
 
@@ -261,7 +402,8 @@ export default function Robin() {
     if (!user) return
     setLoading(true)
     try {
-      const [overview, kibbe, season, trend, heel, era, fragrance, jewelry, glow, archetypes, neighborhoods, growth] = await Promise.all([
+      const today = new Date().toISOString().slice(0, 10)
+      const [overview, kibbe, season, trend, heel, era, fragrance, jewelry, glow, archetypes, neighborhoods, growth, todayCount] = await Promise.all([
         supabase.rpc('robin_overview'),
         supabase.rpc('robin_distribution',       { col_name: 'kibbe_type' }),
         supabase.rpc('robin_distribution',       { col_name: 'color_season' }),
@@ -274,12 +416,14 @@ export default function Robin() {
         supabase.rpc('robin_archetypes'),
         supabase.rpc('robin_neighborhoods'),
         supabase.rpc('robin_growth'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today),
       ])
       if (overview.data?.error === 'unauthorized') {
         setError('unauthorized')
         setLoading(false)
         return
       }
+      setNewToday(todayCount.count ?? 0)
       setData({
         overview:      overview.data,
         kibbe:         kibbe.data,
@@ -342,16 +486,15 @@ export default function Robin() {
   return (
     <main style={{ minHeight: '100vh', background: '#0D0F0E', color: '#FAF7F2', padding: 'clamp(3rem,6vw,5rem) clamp(1rem,4vw,3rem)' }}>
       <style>{`
-        @keyframes pulse-ring {
-          0%   { transform: scale(1);   opacity: 0.35; }
-          60%  { transform: scale(2.2); opacity: 0; }
-          100% { transform: scale(2.2); opacity: 0; }
+        @keyframes ticker-scroll {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-33.333%); }
         }
       `}</style>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginBottom: '3rem' }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '0.5rem' }}>
             <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', color: '#C4717A' }}>ROBIN</p>
             <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: '#3a3028' }}>INTERNAL ANALYTICS // MIN COHORT {MIN_COHORT}</p>
@@ -361,8 +504,20 @@ export default function Robin() {
           </h1>
         </motion.div>
 
+        {/* Ticker */}
+        <Ticker services={services} totalUsers={ov.total_users} newToday={newToday} />
+
         {/* System Status */}
-        <SystemPanel services={services} checkedAt={checkedAt} onRefresh={runHealthChecks} refreshing={refreshing} />
+        <div style={{ marginBottom: '2rem' }}>
+          <SystemPanel
+            services={services}
+            checkedAt={checkedAt}
+            onRefresh={runHealthChecks}
+            refreshing={refreshing}
+            errorLog={errorLog}
+            clock={clock}
+          />
+        </div>
 
         {/* Overview stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '2rem' }}>

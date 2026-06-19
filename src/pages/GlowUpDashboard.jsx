@@ -187,97 +187,159 @@ function DiscomfortGauge({ index, loading }) {
 
 // ── Category signal bars ──────────────────────────────────────────
 
-function CategorySignals({ categories, articles, onEdit }) {
-  const [editing, setEditing] = useState(null) // category id being edited
+function SourceArticles({ matchedArticles }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '260px', overflowY: 'auto', paddingRight: '0.2rem' }}>
+      {matchedArticles.length === 0 && (
+        <p style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-dim)' }}>no articles matched this category</p>
+      )}
+      {matchedArticles.map((a, i) => {
+        const score = scoreArticle(a)
+        return (
+          <motion.a
+            key={i}
+            href={a.url}
+            target="_blank"
+            rel="noreferrer"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.03 }}
+            style={{
+              display: 'block', padding: '0.6rem 0.75rem',
+              background: 'var(--c-surface-2)', borderRadius: '6px',
+              border: '1px solid var(--c-border-2)', textDecoration: 'none',
+              transition: 'border-color 0.15s, background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--c-accent-border)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-2)'}
+          >
+            <p style={{ ...sans, fontSize: '0.74rem', color: 'var(--c-fg)', lineHeight: 1.3, marginBottom: '0.25rem' }}>
+              {a.title}
+            </p>
+            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-muted)' }}>{a.source?.name}</span>
+              <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-dim)' }}>{timeAgo(a.publishedAt)}</span>
+              {score.dis > 0 && (
+                <span style={{ ...mono, fontSize: '0.47rem', padding: '0.08rem 0.35rem', background: 'var(--c-accent-subtle)', border: '1px solid var(--c-accent-border)', borderRadius: '8px', color: 'var(--c-accent)' }}>
+                  ⚡ {score.dis}
+                </span>
+              )}
+              <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-accent)', marginLeft: 'auto' }}>↗ read</span>
+            </div>
+          </motion.a>
+        )
+      })}
+    </div>
+  )
+}
+
+function CategorySignals({ categories, articles }) {
+  const [open, setOpen] = useState(null) // category id with drawer open
+  const [drawerTab, setDrawerTab] = useState({}) // catId → 'sources' | 'keywords'
 
   const scored = categories.map(cat => {
-    const hits = scoreCategoryMentions(articles, cat)
-    const disScore = hits.reduce((s, a) => s + scoreArticle(a).dis, 0)
+    const matchedArticles = scoreCategoryMentions(articles, cat)
     const hash = cat.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
     const base = 20 + (hash % 55)
-    const total = articles.length ? Math.round((hits.length / articles.length) * 100 + base * 0.4) : base
-    return { ...cat, hits: hits.length, disScore, intensity: Math.min(total, 98) }
+    const total = articles.length ? Math.round((matchedArticles.length / articles.length) * 100 + base * 0.4) : base
+    return { ...cat, matchedArticles, hits: matchedArticles.length, intensity: Math.min(total, 98) }
   }).sort((a, b) => b.intensity - a.intensity)
 
   const max = Math.max(...scored.map(s => s.intensity), 1)
+
+  const getTab = (id) => drawerTab[id] ?? 'sources'
+  const setTab = (id, tab) => setDrawerTab(prev => ({ ...prev, [id]: tab }))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {scored.map((cat, i) => {
         const pct = (cat.intensity / max) * 100
-        const isEditing = editing === cat.id
+        const isOpen = open === cat.id
+        const tab = getTab(cat.id)
         return (
-          <motion.div
-            key={cat.id}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.06 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <span style={{ ...sans, fontSize: '0.8rem', color: 'var(--c-fg)' }}>{cat.label}</span>
-                  {cat.hits > 0 && (
-                    <span style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-up)', background: 'var(--c-up-subtle)', border: '1px solid var(--c-up-border)', padding: '0.1rem 0.4rem', borderRadius: '10px' }}>
-                      {cat.hits} signals
-                    </span>
-                  )}
+          <motion.div key={cat.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
+            {/* row */}
+            <button
+              onClick={() => setOpen(isOpen ? null : cat.id)}
+              style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span style={{ ...sans, fontSize: '0.8rem', color: 'var(--c-fg)' }}>{cat.label}</span>
+                    {cat.hits > 0 && (
+                      <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-up)', background: 'var(--c-up-subtle)', border: '1px solid var(--c-up-border)', padding: '0.08rem 0.4rem', borderRadius: '10px' }}>
+                        {cat.hits} source{cat.hits !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ ...mono, fontSize: '0.52rem', color: 'var(--c-muted)', marginTop: '0.12rem', fontStyle: 'italic' }}>
+                    {cat.framing}
+                  </p>
                 </div>
-                <p style={{ ...mono, fontSize: '0.52rem', color: 'var(--c-muted)', marginTop: '0.15rem', fontStyle: 'italic' }}>
-                  {cat.framing}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                  <span style={{ ...mono, fontSize: '0.6rem', color: cat.intensity > 66 ? 'var(--c-accent)' : cat.intensity > 40 ? 'var(--c-amber)' : 'var(--c-muted2)' }}>
+                    {cat.intensity}
+                  </span>
+                  <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-dim)', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▾</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                <span style={{ ...mono, fontSize: '0.6rem', color: cat.intensity > 66 ? 'var(--c-accent)' : cat.intensity > 40 ? 'var(--c-amber)' : 'var(--c-muted2)' }}>
-                  {cat.intensity}
-                </span>
-                <button onClick={() => setEditing(isEditing ? null : cat.id)}
-                  style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  {isEditing ? '✕' : '⋯'}
-                </button>
-              </div>
-            </div>
 
-            {/* intensity bar */}
-            <div style={{ height: '4px', background: 'var(--c-surface-4)', borderRadius: '2px', overflow: 'hidden', marginBottom: '0.2rem' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ delay: i * 0.06 + 0.1, duration: 0.7, ease: 'easeOut' }}
-                style={{
-                  height: '100%',
-                  background: cat.intensity > 66
-                    ? 'linear-gradient(90deg, var(--c-accent), var(--c-purple))'
-                    : cat.intensity > 40
-                    ? 'linear-gradient(90deg, var(--c-amber), var(--c-accent))'
-                    : 'linear-gradient(90deg, var(--c-muted2), var(--c-muted))',
-                  borderRadius: '2px',
-                  boxShadow: cat.intensity > 66 ? '0 0 6px var(--c-accent-border)' : 'none',
-                }}
-              />
-            </div>
-
-            {/* keyword chips */}
-            <AnimatePresence>
-              {isEditing && (
+              {/* bar */}
+              <div style={{ height: '4px', background: 'var(--c-surface-4)', borderRadius: '2px', overflow: 'hidden' }}>
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  style={{ overflow: 'hidden', marginTop: '0.5rem' }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ delay: i * 0.06 + 0.1, duration: 0.7, ease: 'easeOut' }}
+                  style={{
+                    height: '100%',
+                    background: cat.intensity > 66
+                      ? 'linear-gradient(90deg, var(--c-accent), var(--c-purple))'
+                      : cat.intensity > 40
+                      ? 'linear-gradient(90deg, var(--c-amber), var(--c-accent))'
+                      : 'linear-gradient(90deg, var(--c-muted2), var(--c-muted))',
+                    borderRadius: '2px',
+                    boxShadow: cat.intensity > 66 ? '0 0 6px var(--c-accent-border)' : 'none',
+                  }}
+                />
+              </div>
+            </button>
+
+            {/* drawer */}
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.22 }}
+                  style={{ overflow: 'hidden' }}
                 >
-                  <div style={{ padding: '0.75rem', background: 'var(--c-input-bg)', borderRadius: '6px', border: '1px solid var(--c-border-2)' }}>
-                    <p style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-muted)', marginBottom: '0.5rem', letterSpacing: '0.12em' }}>TRACKING KEYWORDS</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                      {cat.keywords.map(kw => (
-                        <span key={kw} style={{
-                          ...mono, fontSize: '0.55rem', padding: '0.2rem 0.55rem',
-                          background: 'var(--c-surface-3)', border: '1px solid var(--c-border-2)',
-                          borderRadius: '12px', color: 'var(--c-muted2)',
-                        }}>{kw}</span>
+                  <div style={{ marginTop: '0.65rem', background: 'var(--c-input-bg)', borderRadius: '8px', border: '1px solid var(--c-border-2)', overflow: 'hidden' }}>
+                    {/* tab bar */}
+                    <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border-1)' }}>
+                      {[{ key: 'sources', label: `Sources (${cat.hits})` }, { key: 'keywords', label: 'Keywords' }].map(t => (
+                        <button key={t.key} onClick={() => setTab(cat.id, t.key)} style={{
+                          ...mono, fontSize: '0.52rem', letterSpacing: '0.1em', padding: '0.55rem 0.9rem',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: tab === t.key ? 'var(--c-accent)' : 'var(--c-muted)',
+                          borderBottom: tab === t.key ? '2px solid var(--c-accent)' : '2px solid transparent',
+                        }}>{t.label}</button>
                       ))}
                     </div>
-                    <p style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-dim)', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                      framing: {cat.framing}
-                    </p>
+                    <div style={{ padding: '0.75rem' }}>
+                      {tab === 'sources' && <SourceArticles matchedArticles={cat.matchedArticles} />}
+                      {tab === 'keywords' && (
+                        <div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                            {cat.keywords.map(kw => (
+                              <span key={kw} style={{ ...mono, fontSize: '0.52rem', padding: '0.18rem 0.5rem', background: 'var(--c-surface-3)', border: '1px solid var(--c-border-2)', borderRadius: '10px', color: 'var(--c-muted2)' }}>{kw}</span>
+                            ))}
+                          </div>
+                          <p style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>framing: {cat.framing}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               )}

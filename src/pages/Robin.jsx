@@ -680,48 +680,25 @@ export default function Robin() {
         </div>
 
         {/* Main grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
-          <div style={{ gridColumn: 'span 12' }}>
-            <Panel title="Growth // last 12 weeks">
-              <GrowthChart data={data?.growth} />
-            </Panel>
-          </div>
+          <Panel title="Growth // last 12 weeks">
+            <GrowthChart data={data?.growth} />
+          </Panel>
 
-          <div style={{ gridColumn: 'span 6' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
             <Panel title="Kibbe type"><BarChart data={data?.kibbe} /></Panel>
-          </div>
-          <div style={{ gridColumn: 'span 6' }}>
             <Panel title="Color season"><BarChart data={data?.season} /></Panel>
-          </div>
-
-          <div style={{ gridColumn: 'span 6' }}>
             <Panel title="Trend stance"><BarChart data={data?.trend} /></Panel>
-          </div>
-          <div style={{ gridColumn: 'span 6' }}>
             <Panel title="Heel preference"><BarChart data={data?.heel} /></Panel>
-          </div>
-
-          <div style={{ gridColumn: 'span 6' }}>
             <Panel title="Era references"><BarChart data={data?.era} /></Panel>
-          </div>
-          <div style={{ gridColumn: 'span 6' }}>
             <Panel title="Fragrance family"><BarChart data={data?.fragrance} /></Panel>
-          </div>
-
-          <div style={{ gridColumn: 'span 4' }}>
             <Panel title="Jewelry default"><BarChart data={data?.jewelry} /></Panel>
-          </div>
-          <div style={{ gridColumn: 'span 4' }}>
             <Panel title="Glow Up tier"><BarChart data={data?.glowTiers} /></Panel>
-          </div>
-          <div style={{ gridColumn: 'span 4' }}>
             <Panel title="Style archetypes"><BarChart data={data?.archetypes} /></Panel>
           </div>
 
-          <div style={{ gridColumn: 'span 12' }}>
-            <Panel title="Top neighborhoods"><BarChart data={data?.neighborhoods} /></Panel>
-          </div>
+          <Panel title="Top neighborhoods"><BarChart data={data?.neighborhoods} /></Panel>
 
         </div>
 

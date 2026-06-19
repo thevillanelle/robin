@@ -16,7 +16,7 @@ export const useAuthStore = create((set) => ({
   signInWithGoogle: async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: 'https://robin.ritualware.app/auth/callback' },
     })
   },
 

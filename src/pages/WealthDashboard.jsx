@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 
 // ── Constants ────────────────────────────────────────────────────
 
-const DEFAULT_WATCHLIST = ['AAPL', 'NVDA', 'TSLA', 'META', 'AMZN']
+const DEFAULT_WATCHLIST = ['SPY', 'PANW', 'SCHO', 'TLRY', 'RKLB', 'NOC', 'IRDM', 'CACI', 'RTX', 'GLD', 'DRS', 'TDG', 'KBR', 'AVAV', 'LDOS', 'VVX', 'OSK', 'NEM', 'MP']
 const DEFAULT_CITIES = [
   { label: 'New York',     tz: 'America/New_York' },
   { label: 'Los Angeles',  tz: 'America/Los_Angeles' },
@@ -79,17 +79,6 @@ async function fetchSEC(ticker) {
   } catch { return [] }
 }
 
-async function fetchReddit(ticker) {
-  try {
-    const q = encodeURIComponent(`${ticker} stock`)
-    const r = await fetch(`https://www.reddit.com/search.json?q=${q}&sort=hot&t=week&limit=8&raw_json=1`, {
-      headers: { 'Accept': 'application/json' },
-    })
-    if (!r.ok) return []
-    const d = await r.json()
-    return (d.data?.children ?? []).map(c => c.data)
-  } catch { return [] }
-}
 
 // ── API key gate ─────────────────────────────────────────────────
 
@@ -359,71 +348,85 @@ function SECPanel({ items }) {
   )
 }
 
-// ── Reddit sentiment ─────────────────────────────────────────────
 
-function RedditPanel({ items, ticker }) {
-  if (!items.length) return (
-    <div>
-      <p style={{ ...mono, fontSize: '0.65rem', color: dim, marginBottom: '0.75rem' }}>no reddit data — CORS may be blocked</p>
-      <a href={`https://www.reddit.com/search/?q=${ticker}+stock&sort=hot`} target="_blank" rel="noreferrer"
-        style={{ ...mono, fontSize: '0.6rem', color: muted, borderBottom: `1px solid ${dim}` }}>
-        view on reddit ↗
-      </a>
-    </div>
-  )
+// ── Apple Calendar (ICS) ─────────────────────────────────────────
 
-  const sentimentWords = { bull: ['bull', 'moon', 'buy', 'calls', 'long', 'up', 'rocket', 'yolo', 'strong'], bear: ['bear', 'short', 'puts', 'sell', 'crash', 'down', 'fraud', 'dump', 'overvalued'] }
-  const score = items.reduce((acc, p) => {
-    const text = (p.title + ' ' + (p.selftext ?? '')).toLowerCase()
-    const bulls = sentimentWords.bull.filter(w => text.includes(w)).length
-    const bears = sentimentWords.bear.filter(w => text.includes(w)).length
-    return acc + bulls - bears
-  }, 0)
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <span style={{ ...mono, fontSize: '0.6rem', color: muted }}>sentiment</span>
-        <span style={{ ...mono, fontSize: '0.85rem', color: score > 0 ? '#6AAD8A' : score < 0 ? accent : fg }}>
-          {score > 0 ? `bullish +${score}` : score < 0 ? `bearish ${score}` : 'neutral'}
-        </span>
-        <span style={{ ...mono, fontSize: '0.55rem', color: dim }}>{items.length} posts</span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '200px', overflowY: 'auto' }}>
-        {items.map((p, i) => (
-          <a key={i} href={`https://reddit.com${p.permalink}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-            <p style={{ ...mono, fontSize: '0.55rem', color: dim, marginBottom: '0.15rem' }}>r/{p.subreddit} · {p.score} pts · {ago(p.created_utc)}</p>
-            <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: '#C8BFB0', lineHeight: 1.3 }}>{p.title}</p>
-          </a>
-        ))}
-      </div>
-    </div>
-  )
+function parseICS(text) {
+  const events = []
+  const vevents = text.split('BEGIN:VEVENT').slice(1)
+  vevents.forEach(block => {
+    const content = block.slice(0, block.indexOf('END:VEVENT'))
+    // unfold continuation lines
+    const unfolded = content.replace(/\r?\n[ \t]/g, '')
+    const get = key => {
+      const m = unfolded.match(new RegExp(`(?:^|\\n)${key}[^:;\\n]*[;:][^:\\n]*?:?([^\\n]+)`, 'i'))
+      return m ? m[1].trim().replace(/\\n/g, '\n').replace(/\\,/g, ',') : null
+    }
+    const getDateTime = key => {
+      const m = unfolded.match(new RegExp(`(?:^|\\n)${key}[^:\\n]*:([^\\n]+)`, 'i'))
+      if (!m) return null
+      const raw = m[1].trim()
+      // 20240619 or 20240619T140000 or 20240619T140000Z
+      if (raw.length === 8) return new Date(raw.slice(0,4)+'-'+raw.slice(4,6)+'-'+raw.slice(6,8)+'T00:00:00')
+      const y=raw.slice(0,4),mo=raw.slice(4,6),d=raw.slice(6,8),h=raw.slice(9,11)||'00',mi=raw.slice(11,13)||'00',s=raw.slice(13,15)||'00'
+      return new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}${raw.endsWith('Z')?'Z':''}`)
+    }
+    const summary = get('SUMMARY')
+    const start   = getDateTime('DTSTART')
+    if (!summary || !start || isNaN(start)) return
+    events.push({ summary, start, end: getDateTime('DTEND'), location: get('LOCATION') })
+  })
+  return events.sort((a, b) => a.start - b.start)
 }
 
-// ── Calendar ─────────────────────────────────────────────────────
+function CalendarPanel({ icsUrl, onSetUrl }) {
+  const [editing, setEditing]   = useState(false)
+  const [val, setVal]           = useState(icsUrl ?? '')
+  const [events, setEvents]     = useState([])
+  const [calError, setCalError] = useState(null)
+  const [loading, setLoading]   = useState(false)
 
-function CalendarPanel({ embedUrl, onSetUrl }) {
-  const [editing, setEditing] = useState(false)
-  const [val, setVal] = useState(embedUrl ?? '')
+  useEffect(() => {
+    if (!icsUrl) return
+    setLoading(true)
+    setCalError(null)
+    // webcal:// → https://
+    const url = icsUrl.replace(/^webcal:\/\//i, 'https://')
+    fetch(url)
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.text() })
+      .then(text => {
+        const parsed = parseICS(text)
+        const now = new Date()
+        setEvents(parsed.filter(e => e.start >= now || (e.end && e.end >= now)).slice(0, 20))
+        setLoading(false)
+      })
+      .catch(e => { setCalError(e.message); setLoading(false) })
+  }, [icsUrl])
 
-  if (!embedUrl || editing) return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: '#C8BFB0', lineHeight: 1.5 }}>
-        In Google Calendar, go to Settings → your calendar → Integrate calendar → copy the <em>Embed code</em> URL (the src= value inside the iframe). Paste it below.
+  const fmtEvent = e => {
+    const d = e.start
+    const date = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    const time = d.getHours() === 0 && d.getMinutes() === 0 ? 'all day' : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    return { date, time }
+  }
+
+  if (!icsUrl || editing) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+      <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: '#C8BFB0', lineHeight: 1.6 }}>
+        In Apple Calendar, right-click a calendar → <em>Share Calendar…</em> → enable <em>Public Calendar</em> → copy the link. Paste the <code style={{ ...mono, fontSize: '0.75rem', color: accent }}>webcal://</code> URL below.
       </p>
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <input
           value={val}
           onChange={e => setVal(e.target.value)}
-          placeholder="https://calendar.google.com/calendar/embed?src=..."
+          placeholder="webcal://p46-caldav.icloud.com/published/2/..."
           style={{
             flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)',
             borderRadius: '4px', padding: '0.6rem 0.9rem',
-            ...mono, fontSize: '0.65rem', color: fg, outline: 'none',
+            ...mono, fontSize: '0.6rem', color: fg, outline: 'none',
           }}
         />
-        <button onClick={() => { onSetUrl(val); setEditing(false) }}
+        <button onClick={() => { onSetUrl(val.trim()); setEditing(false) }}
           style={{ ...mono, fontSize: '0.65rem', color: fg, background: 'rgba(196,113,122,0.15)', border: `1px solid ${accent}`, padding: '0.6rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
           save
         </button>
@@ -433,14 +436,50 @@ function CalendarPanel({ embedUrl, onSetUrl }) {
 
   return (
     <div>
-      <button onClick={() => setEditing(true)} style={{ ...mono, fontSize: '0.55rem', color: dim, background: 'none', border: 'none', cursor: 'pointer', marginBottom: '0.75rem' }}>
-        edit calendar ↗
-      </button>
-      <iframe
-        src={embedUrl + '&wkst=1&bgcolor=%230D0F0E&color=%23C4717A&ctz=America%2FNew_York&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=0&showCalendars=0&mode=WEEK'}
-        style={{ width: '100%', height: '500px', border: 'none', borderRadius: '0.5rem' }}
-        title="Google Calendar"
-      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+        <button onClick={() => setEditing(true)} style={{ ...mono, fontSize: '0.55rem', color: dim, background: 'none', border: 'none', cursor: 'pointer' }}>
+          edit ↗
+        </button>
+      </div>
+
+      {loading && <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading calendar…</p>}
+
+      {calError && (
+        <div>
+          <p style={{ ...mono, fontSize: '0.6rem', color: accent, marginBottom: '0.5rem' }}>
+            could not fetch calendar — iCloud may block cross-origin requests
+          </p>
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: muted, lineHeight: 1.5 }}>
+            Try making the calendar public in iCloud.com settings, or open
+            <a href="https://www.icloud.com/calendar" target="_blank" rel="noreferrer" style={{ color: accent, marginLeft: '0.25rem' }}>iCloud Calendar ↗</a>
+          </p>
+        </div>
+      )}
+
+      {!loading && !calError && events.length === 0 && (
+        <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>no upcoming events</p>
+      )}
+
+      {!loading && events.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0rem', maxHeight: '420px', overflowY: 'auto' }}>
+          {events.map((e, i) => {
+            const { date, time } = fmtEvent(e)
+            const isToday = e.start.toDateString() === new Date().toDateString()
+            return (
+              <div key={i} style={{ display: 'flex', gap: '1rem', padding: '0.65rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'flex-start' }}>
+                <div style={{ flexShrink: 0, width: '80px' }}>
+                  <p style={{ ...mono, fontSize: '0.55rem', color: isToday ? accent : dim, letterSpacing: '0.05em' }}>{date}</p>
+                  <p style={{ ...mono, fontSize: '0.6rem', color: isToday ? fg : muted }}>{time}</p>
+                </div>
+                <div>
+                  <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: isToday ? fg : '#C8BFB0', lineHeight: 1.3 }}>{e.summary}</p>
+                  {e.location && <p style={{ ...mono, fontSize: '0.55rem', color: dim, marginTop: '0.2rem' }}>{e.location}</p>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -544,13 +583,12 @@ export default function WealthDashboard() {
   const [apiKey, setApiKey]         = useState(() => LS.get('robin_finnhub_key', null))
   const [watchlist, setWatchlist]   = useState(() => LS.get('robin_watchlist', DEFAULT_WATCHLIST))
   const [cities, setCities]         = useState(() => LS.get('robin_clock_cities', DEFAULT_CITIES))
-  const [calUrl, setCalUrl]         = useState(() => LS.get('robin_cal_url', null))
+  const [icsUrl, setIcsUrl]         = useState(() => LS.get('robin_cal_url', null))
   const [selected, setSelected]     = useState(watchlist[0])
   const [quotes, setQuotes]         = useState({})
   const [news, setNews]             = useState([])
   const [insider, setInsider]       = useState([])
   const [secFiles, setSecFiles]     = useState([])
-  const [reddit, setReddit]         = useState([])
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [editingCities, setEditingCities] = useState(false)
   const quoteTimer = useRef(null)
@@ -573,8 +611,8 @@ export default function WealthDashboard() {
     LS.set('robin_clock_cities', list)
   }, [])
 
-  const saveCalUrl = useCallback(url => {
-    setCalUrl(url)
+  const saveIcsUrl = useCallback(url => {
+    setIcsUrl(url)
     LS.set('robin_cal_url', url)
   }, [])
 
@@ -595,14 +633,13 @@ export default function WealthDashboard() {
   useEffect(() => {
     if (!selected || !apiKey) return
     setLoadingDetail(true)
-    setNews([]); setInsider([]); setSecFiles([]); setReddit([])
+    setNews([]); setInsider([]); setSecFiles([])
     Promise.all([
       fetchNews(selected, apiKey),
       fetchInsider(selected, apiKey),
       fetchSEC(selected),
-      fetchReddit(selected),
-    ]).then(([n, ins, sec, red]) => {
-      setNews(n); setInsider(ins); setSecFiles(sec); setReddit(red)
+    ]).then(([n, ins, sec]) => {
+      setNews(n); setInsider(ins); setSecFiles(sec)
       setLoadingDetail(false)
     })
   }, [selected, apiKey])
@@ -667,12 +704,7 @@ export default function WealthDashboard() {
 
         {/* Culture & fraud analysis row */}
         {selected && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <Panel title={`reddit // ${selected}`}>
-              {loadingDetail
-                ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
-                : <RedditPanel items={reddit} ticker={selected} />}
-            </Panel>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <Panel title={`sec filings // ${selected}`}>
               {loadingDetail
                 ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
@@ -695,8 +727,8 @@ export default function WealthDashboard() {
                 : <NewsFeed items={news} />}
             </Panel>
           )}
-          <Panel title="calendar">
-            <CalendarPanel embedUrl={calUrl} onSetUrl={saveCalUrl} />
+          <Panel title="calendar // apple">
+            <CalendarPanel icsUrl={icsUrl} onSetUrl={saveIcsUrl} />
           </Panel>
         </div>
 

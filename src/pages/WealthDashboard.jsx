@@ -9,9 +9,9 @@ const DEFAULT_WATCHLIST = ['SPY', 'PANW', 'SCHO', 'TLRY', 'RKLB', 'NOC', 'IRDM',
 const DEFAULT_CITIES = [
   { label: 'New York',     tz: 'America/New_York' },
   { label: 'Los Angeles',  tz: 'America/Los_Angeles' },
-  { label: 'London',       tz: 'Europe/London' },
-  { label: 'Dubai',        tz: 'Asia/Dubai' },
-  { label: 'Tokyo',        tz: 'Asia/Tokyo' },
+  { label: 'Chicago',      tz: 'America/Chicago' },
+  { label: 'Nice',         tz: 'Europe/Paris' },
+  { label: 'Singapore',    tz: 'Asia/Singapore' },
 ]
 
 const LS = {

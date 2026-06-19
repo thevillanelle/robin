@@ -3,21 +3,22 @@ import { supabase } from '../lib/supabase'
 
 export default function AuthCallback() {
   useEffect(() => {
-    let done = false
-    const go = () => { if (!done) { done = true; window.location.replace('/') } }
-
-    // detectSessionInUrl may have already processed the token before this
-    // component mounted — check immediately before subscribing
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { go(); return }
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-          subscription.unsubscribe()
-          go()
-        }
-      })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        subscription.unsubscribe()
+        window.location.replace('/')
+      }
     })
+
+    // in case detectSessionInUrl already resolved before the listener registered
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        subscription.unsubscribe()
+        window.location.replace('/')
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return (

@@ -358,11 +358,19 @@ function StockDetail({ ticker, quote, candles }) {
 function NewsFeed({ items }) {
   if (!items.length) return <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>no news</p>
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '280px', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '280px', overflowY: 'auto' }}>
       {items.map((n, i) => (
-        <a key={i} href={n.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'block' }}>
-          <p style={{ ...mono, fontSize: '0.55rem', color: dim, marginBottom: '0.2rem' }}>{n.source} · {ago(n.datetime)}</p>
-          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: 'var(--c-body-text)', lineHeight: 1.4 }}>{n.headline}</p>
+        <a key={i} href={n.url} target="_blank" rel="noreferrer"
+          style={{ textDecoration: 'none', display: 'block', padding: '0.6rem 0.75rem', background: 'var(--c-surface-2)', borderRadius: '6px', border: '1px solid var(--c-border-1)', transition: 'border-color 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--c-accent-border)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-1)'}
+        >
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.78rem', color: 'var(--c-fg)', lineHeight: 1.35, marginBottom: '0.25rem' }}>{n.headline}</p>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <span style={{ ...mono, fontSize: '0.5rem', color: muted }}>{n.source}</span>
+            <span style={{ ...mono, fontSize: '0.5rem', color: dim }}>{ago(n.datetime)}</span>
+            <span style={{ ...mono, fontSize: '0.5rem', color: accent, marginLeft: 'auto' }}>↗ read</span>
+          </div>
         </a>
       ))}
     </div>
@@ -371,24 +379,32 @@ function NewsFeed({ items }) {
 
 // ── Insider transactions ─────────────────────────────────────────
 
-function InsiderPanel({ items }) {
+function InsiderPanel({ items, ticker }) {
   if (!items.length) return <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>no data</p>
+  const secSearch = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${ticker}&type=4&dateb=&owner=include&count=20`
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '260px', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '260px', overflowY: 'auto' }}>
       {items.map((t, i) => {
         const isBuy = (t.transactionType ?? t.change ?? 0) > 0
         return (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0', borderBottom: '1px solid var(--c-surface-2)' }}>
+          <a key={i} href={t.filingUrl ?? secSearch} target="_blank" rel="noreferrer"
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.65rem', background: 'var(--c-surface-2)', borderRadius: '5px', border: '1px solid var(--c-border-1)', textDecoration: 'none', transition: 'border-color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = isBuy ? 'var(--c-up-border)' : 'var(--c-accent-border)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-1)'}
+          >
             <div>
               <p style={{ ...mono, fontSize: '0.6rem', color: isBuy ? 'var(--c-up)' : accent }}>
                 {isBuy ? 'BUY' : 'SELL'} · {t.name ?? t.filingPerson ?? '—'}
               </p>
-              <p style={{ ...mono, fontSize: '0.55rem', color: muted }}>{t.transactionDate ?? t.filingDate ?? '—'}</p>
+              <p style={{ ...mono, fontSize: '0.52rem', color: muted }}>{t.transactionDate ?? t.filingDate ?? '—'}</p>
             </div>
-            <p style={{ ...mono, fontSize: '0.65rem', color: isBuy ? 'var(--c-up)' : accent }}>
-              {t.change != null ? `${t.change > 0 ? '+' : ''}${Number(t.change).toLocaleString()}` : '—'}
-            </p>
-          </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ ...mono, fontSize: '0.65rem', color: isBuy ? 'var(--c-up)' : accent }}>
+                {t.change != null ? `${t.change > 0 ? '+' : ''}${Number(t.change).toLocaleString()}` : '—'}
+              </p>
+              <p style={{ ...mono, fontSize: '0.48rem', color: dim }}>↗ SEC</p>
+            </div>
+          </a>
         )
       })}
     </div>
@@ -397,21 +413,30 @@ function InsiderPanel({ items }) {
 
 // ── SEC filings ──────────────────────────────────────────────────
 
-function SECPanel({ items }) {
+function SECPanel({ items, ticker }) {
   if (!items.length) return <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>no recent filings</p>
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '260px', overflowY: 'auto' }}>
-      {items.map((f, i) => (
-        <div key={i} style={{ padding: '0.45rem 0', borderBottom: '1px solid var(--c-surface-2)' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'baseline', marginBottom: '0.15rem' }}>
-            <span style={{ ...mono, fontSize: '0.6rem', color: accent }}>{f.form_type}</span>
-            <span style={{ ...mono, fontSize: '0.55rem', color: dim }}>{f.file_date}</span>
-          </div>
-          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: 'var(--c-body-text)', lineHeight: 1.3 }}>
-            {f.entity_name}
-          </p>
-        </div>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '260px', overflowY: 'auto' }}>
+      {items.map((f, i) => {
+        const href = f.file_url
+          ?? `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(f.entity_name ?? ticker)}%22&dateRange=custom&startdt=${f.file_date}&enddt=${f.file_date}&forms=${f.form_type}`
+        return (
+          <a key={i} href={href} target="_blank" rel="noreferrer"
+            style={{ display: 'block', padding: '0.5rem 0.65rem', background: 'var(--c-surface-2)', borderRadius: '5px', border: '1px solid var(--c-border-1)', textDecoration: 'none', transition: 'border-color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--c-accent-border)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-1)'}
+          >
+            <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'baseline', marginBottom: '0.15rem' }}>
+              <span style={{ ...mono, fontSize: '0.6rem', color: accent }}>{f.form_type}</span>
+              <span style={{ ...mono, fontSize: '0.52rem', color: dim }}>{f.file_date}</span>
+              <span style={{ ...mono, fontSize: '0.48rem', color: accent, marginLeft: 'auto' }}>↗ EDGAR</span>
+            </div>
+            <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: 'var(--c-body-text)', lineHeight: 1.3 }}>
+              {f.entity_name}
+            </p>
+          </a>
+        )
+      })}
     </div>
   )
 }
@@ -1000,12 +1025,12 @@ export default function WealthDashboard() {
             <Panel title={`sec filings // ${selected}`}>
               {loadingDetail
                 ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
-                : <SECPanel items={secFiles} />}
+                : <SECPanel items={secFiles} ticker={selected} />}
             </Panel>
             <Panel title={`insider moves // ${selected}`}>
               {loadingDetail
                 ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
-                : <InsiderPanel items={insider} />}
+                : <InsiderPanel items={insider} ticker={selected} />}
             </Panel>
           </div>
         )}

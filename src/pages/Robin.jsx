@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { supabase } from '../lib/supabase'
 import ThemeDropdown from '../components/ThemeDropdown'
@@ -78,122 +78,66 @@ function MiniSparkline({ history }) {
   )
 }
 
-// ── Per-app log drawer ───────────────────────────────────────────
-
-function AppLogDrawer({ svc, log, history }) {
-  const svcLog = log.filter(e => e.message.includes(svc.name))
-  const statusColor = { up: 'var(--c-up)', down: 'var(--c-accent)', degraded: 'var(--c-amber)', loading: 'var(--c-dim)' }[svc.status] ?? 'var(--c-dim)'
-  const avg = history?.length ? Math.round(history.reduce((a, b) => a + b, 0) / history.length) : null
-  const min = history?.length ? Math.min(...history) : null
-  const max = history?.length ? Math.max(...history) : null
-  const uptime = log.length ? Math.round((log.filter(e => e.message.includes(svc.name) && e.type === 'recovery').length / Math.max(log.filter(e => e.message.includes(svc.name)).length, 1)) * 100) : null
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.25 }}
-      style={{ overflow: 'hidden' }}
-    >
-      <div style={{
-        marginTop: '0.75rem', padding: '1rem 1.25rem',
-        background: 'var(--c-input-bg)', borderRadius: '0.5rem',
-        border: '1px solid var(--c-border-2)',
-      }}>
-        {/* Response time stats */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-          <div style={{ display: 'flex', gap: '1.25rem' }}>
-            {avg != null && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted2)' }}>avg <span style={{ color: statusColor }}>{avg}ms</span></span>}
-            {min != null && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted2)' }}>min <span style={{ color: 'var(--c-up)' }}>{min}ms</span></span>}
-            {max != null && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted2)' }}>max <span style={{ color: 'var(--c-accent)' }}>{max}ms</span></span>}
-          </div>
-          <MiniSparkline history={history} />
-        </div>
-
-        {/* Per-app event log */}
-        <p style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.15em', color: 'var(--c-muted)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>event log</p>
-        {svcLog.length === 0 ? (
-          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: 'var(--c-dim)' }}>no incidents recorded this session</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '100px', overflowY: 'auto' }}>
-            {svcLog.map((e, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: '0.75rem', alignItems: 'baseline' }}>
-                <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', color: 'var(--c-dim)', flexShrink: 0 }}>{e.ts}</span>
-                <span style={{
-                  fontFamily: 'monospace', fontSize: '0.55rem',
-                  color: e.type === 'error' ? 'var(--c-accent)' : e.type === 'recovery' ? 'var(--c-up)' : 'var(--c-muted)',
-                }}>{e.message}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
 // ── Service tile ────────────────────────────────────────────────
 
-function ServiceTile({ svc, i, clickable, log, history }) {
-  const [expanded, setExpanded] = useState(false)
+function ServiceTile({ svc, i, selected, onSelect, history }) {
+  const navigate = useNavigate()
   const statusLabel = { up: 'operational', down: 'down', degraded: 'degraded', loading: 'checking…' }[svc.status] ?? 'checking…'
   const statusColor = { up: 'var(--c-up)', down: 'var(--c-accent)', degraded: 'var(--c-amber)', loading: 'var(--c-surface-4)' }[svc.status] ?? 'var(--c-surface-4)'
 
-  const handleClick = (e) => {
-    if (clickable) return  // let the Link handle it
-    e.stopPropagation()
-    setExpanded(x => !x)
+  const handleClick = () => {
+    if (selected && svc.route) {
+      navigate(svc.route)
+    } else {
+      onSelect(svc)
+    }
   }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+      onClick={handleClick}
       style={{
         padding: '1.25rem 1.5rem',
-        background: 'var(--c-surface-1)',
+        background: selected ? 'var(--c-surface-3)' : 'var(--c-surface-1)',
         borderRadius: '0.75rem',
-        border: `1px solid ${svc.status === 'down' ? 'var(--c-accent-border)' : expanded ? 'var(--c-border-3)' : 'var(--c-border-1)'}`,
+        border: `1px solid ${svc.status === 'down' ? 'var(--c-accent-border)' : selected ? 'var(--c-accent-border-strong, var(--c-border-4, var(--c-border-3)))' : 'var(--c-border-1)'}`,
         display: 'flex', flexDirection: 'column', gap: '0.6rem',
-        cursor: clickable ? 'pointer' : 'default',
-        transition: 'border-color 0.25s',
+        cursor: 'pointer',
+        transition: 'border-color 0.2s, background 0.2s',
       }}
-      onClick={handleClick}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-muted)' }}>
           {svc.sub}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {!clickable && (
-            <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', color: 'var(--c-dim)', transition: 'transform 0.2s', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none' }}>▾</span>
+          {selected && svc.route && (
+            <span style={{ fontFamily: 'monospace', fontSize: '0.48rem', color: 'var(--c-accent)', letterSpacing: '0.1em' }}>tap to open ↗</span>
           )}
           <GlowDot status={svc.status} />
         </div>
       </div>
       <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.1rem', color: 'var(--c-fg)', lineHeight: 1 }}>
-        {svc.name}{clickable && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted)', marginLeft: '0.4rem' }}>↗</span>}
+        {svc.name}
       </p>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-        <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: statusColor, letterSpacing: '0.1em' }}>
-          {statusLabel}
-        </p>
-        {svc.ms != null && (
-          <motion.p
-            key={svc.ms}
-            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-            style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)' }}
-          >
-            {svc.ms}ms
-          </motion.p>
-        )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: statusColor, letterSpacing: '0.1em' }}>
+            {statusLabel}
+          </p>
+          {svc.ms != null && (
+            <motion.p
+              key={svc.ms}
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+              style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)' }}
+            >
+              {svc.ms}ms
+            </motion.p>
+          )}
+        </div>
+        {selected && history?.length > 1 && <MiniSparkline history={history} />}
       </div>
-
-      <AnimatePresence>
-        {expanded && !clickable && (
-          <AppLogDrawer svc={svc} log={log} history={history} />
-        )}
-      </AnimatePresence>
     </motion.div>
   )
 }
@@ -234,14 +178,17 @@ function Ticker({ services, totalUsers, newToday }) {
   )
 }
 
-// ── Error log ───────────────────────────────────────────────────
+// ── Event log panel ──────────────────────────────────────────────
 
-function ErrorLog({ entries }) {
+function EventLog({ entries, selectedSvc }) {
   const ref = useRef(null)
+  const filtered = selectedSvc
+    ? entries.filter(e => e.message.includes(selectedSvc.name))
+    : entries
 
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = 0
-  }, [entries.length])
+  }, [selectedSvc?.name, entries.length])
 
   return (
     <motion.div
@@ -251,19 +198,28 @@ function ErrorLog({ entries }) {
         padding: '1.25rem 1.5rem',
         background: 'var(--c-input-bg)',
         borderRadius: '0.75rem',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '1px solid var(--c-border-1)',
       }}
     >
-      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '0.85rem' }}>
-        event log
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-accent)' }}>
+          {selectedSvc ? `${selectedSvc.name} // events` : 'event log'}
+        </p>
+        {selectedSvc && (
+          <p style={{ fontFamily: 'monospace', fontSize: '0.48rem', color: 'var(--c-dim)', letterSpacing: '0.1em' }}>
+            tap tile again to open dashboard
+          </p>
+        )}
+      </div>
       <div
         ref={ref}
         style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}
       >
-        {entries.length === 0 ? (
-          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: 'var(--c-surface-4)' }}>no events yet</p>
-        ) : entries.map((e, i) => (
+        {filtered.length === 0 ? (
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: 'var(--c-surface-4)' }}>
+            {selectedSvc ? `no events recorded for ${selectedSvc.name} this session` : 'no events yet'}
+          </p>
+        ) : filtered.map((e, i) => (
           <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'baseline' }}>
             <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)', flexShrink: 0 }}>{e.ts}</span>
             <span style={{
@@ -281,7 +237,7 @@ function ErrorLog({ entries }) {
 
 // ── System panel ────────────────────────────────────────────────
 
-function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clock, msHistory }) {
+function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clock, msHistory, selectedSvc, onSelectSvc }) {
   const allUp   = services.length > 0 && services.every(s => s.status === 'up')
   const anyDown = services.some(s => s.status === 'down')
 
@@ -334,16 +290,19 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
-        {services.map((svc, i) =>
-          svc.route
-            ? <Link key={svc.url} to={svc.route} style={{ textDecoration: 'none' }}>
-                <ServiceTile svc={svc} i={i} clickable log={errorLog} history={msHistory?.[svc.url] ?? []} />
-              </Link>
-            : <ServiceTile key={svc.url} svc={svc} i={i} log={errorLog} history={msHistory?.[svc.url] ?? []} />
-        )}
+        {services.map((svc, i) => (
+          <ServiceTile
+            key={svc.url}
+            svc={svc}
+            i={i}
+            selected={selectedSvc?.url === svc.url}
+            onSelect={onSelectSvc}
+            history={msHistory?.[svc.url] ?? []}
+          />
+        ))}
       </div>
 
-      <ErrorLog entries={errorLog} />
+      <EventLog entries={errorLog} selectedSvc={selectedSvc} />
     </motion.div>
   )
 }
@@ -504,6 +463,7 @@ export default function Robin() {
   const [errorLog, setErrorLog]   = useState([])
   const [clock, setClock]         = useState('')
   const [msHistory, setMsHistory] = useState({})
+  const [selectedSvc, setSelectedSvc] = useState(null)
   const prevStatuses              = useRef({})
   const intervalRef               = useRef(null)
 
@@ -688,6 +648,8 @@ export default function Robin() {
             errorLog={errorLog}
             clock={clock}
             msHistory={msHistory}
+            selectedSvc={selectedSvc}
+            onSelectSvc={svc => setSelectedSvc(prev => prev?.url === svc.url ? null : svc)}
           />
         </div>
 

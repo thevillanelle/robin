@@ -667,7 +667,7 @@ export default function Robin() {
         </motion.div>
 
         {/* Overview stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '2rem' }}>
           <Stat label="Total users"           value={ov.total_users} />
           <Stat label="Style Bible complete"  value={ov.with_style_profile}
             sub={ov.total_users ? `${Math.round((ov.with_style_profile / ov.total_users) * 100)}% completion` : null} />

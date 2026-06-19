@@ -53,11 +53,99 @@ function GlowDot({ status }) {
   )
 }
 
+// ── Response sparkline ───────────────────────────────────────────
+
+function MiniSparkline({ history }) {
+  if (!history?.length) return null
+  const max = Math.max(...history, 1)
+  const w = 80, h = 24
+  const pts = history.map((v, i) => {
+    const x = (i / (history.length - 1 || 1)) * w
+    const y = h - (v / max) * (h - 2)
+    return `${x},${y}`
+  }).join(' ')
+  const lastMs = history[history.length - 1]
+  const color = lastMs < 300 ? 'var(--c-up)' : lastMs < 800 ? 'var(--c-amber)' : 'var(--c-accent)'
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '80px', height: '24px', flexShrink: 0 }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.2" opacity="0.7" />
+      {history.map((v, i) => {
+        const x = (i / (history.length - 1 || 1)) * w
+        const y = h - (v / max) * (h - 2)
+        return <circle key={i} cx={x} cy={y} r={i === history.length - 1 ? 2 : 1} fill={color} />
+      })}
+    </svg>
+  )
+}
+
+// ── Per-app log drawer ───────────────────────────────────────────
+
+function AppLogDrawer({ svc, log, history }) {
+  const svcLog = log.filter(e => e.message.includes(svc.name))
+  const statusColor = { up: 'var(--c-up)', down: 'var(--c-accent)', degraded: 'var(--c-amber)', loading: 'var(--c-dim)' }[svc.status] ?? 'var(--c-dim)'
+  const avg = history?.length ? Math.round(history.reduce((a, b) => a + b, 0) / history.length) : null
+  const min = history?.length ? Math.min(...history) : null
+  const max = history?.length ? Math.max(...history) : null
+  const uptime = log.length ? Math.round((log.filter(e => e.message.includes(svc.name) && e.type === 'recovery').length / Math.max(log.filter(e => e.message.includes(svc.name)).length, 1)) * 100) : null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.25 }}
+      style={{ overflow: 'hidden' }}
+    >
+      <div style={{
+        marginTop: '0.75rem', padding: '1rem 1.25rem',
+        background: 'var(--c-input-bg)', borderRadius: '0.5rem',
+        border: '1px solid var(--c-border-2)',
+      }}>
+        {/* Response time stats */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '1.25rem' }}>
+            {avg != null && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted2)' }}>avg <span style={{ color: statusColor }}>{avg}ms</span></span>}
+            {min != null && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted2)' }}>min <span style={{ color: 'var(--c-up)' }}>{min}ms</span></span>}
+            {max != null && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted2)' }}>max <span style={{ color: 'var(--c-accent)' }}>{max}ms</span></span>}
+          </div>
+          <MiniSparkline history={history} />
+        </div>
+
+        {/* Per-app event log */}
+        <p style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.15em', color: 'var(--c-muted)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>event log</p>
+        {svcLog.length === 0 ? (
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: 'var(--c-dim)' }}>no incidents recorded this session</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '100px', overflowY: 'auto' }}>
+            {svcLog.map((e, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: '0.75rem', alignItems: 'baseline' }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', color: 'var(--c-dim)', flexShrink: 0 }}>{e.ts}</span>
+                <span style={{
+                  fontFamily: 'monospace', fontSize: '0.55rem',
+                  color: e.type === 'error' ? 'var(--c-accent)' : e.type === 'recovery' ? 'var(--c-up)' : 'var(--c-muted)',
+                }}>{e.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
 // ── Service tile ────────────────────────────────────────────────
 
-function ServiceTile({ svc, i, clickable }) {
+function ServiceTile({ svc, i, clickable, log, history }) {
+  const [expanded, setExpanded] = useState(false)
   const statusLabel = { up: 'operational', down: 'down', degraded: 'degraded', loading: 'checking…' }[svc.status] ?? 'checking…'
   const statusColor = { up: 'var(--c-up)', down: 'var(--c-accent)', degraded: 'var(--c-amber)', loading: 'var(--c-surface-4)' }[svc.status] ?? 'var(--c-surface-4)'
+
+  const handleClick = (e) => {
+    if (clickable) return  // let the Link handle it
+    e.stopPropagation()
+    setExpanded(x => !x)
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -65,16 +153,23 @@ function ServiceTile({ svc, i, clickable }) {
         padding: '1.25rem 1.5rem',
         background: 'var(--c-surface-1)',
         borderRadius: '0.75rem',
-        border: `1px solid ${svc.status === 'down' ? 'var(--c-accent-border)' : 'var(--c-border-1)'}`,
+        border: `1px solid ${svc.status === 'down' ? 'var(--c-accent-border)' : expanded ? 'var(--c-border-3)' : 'var(--c-border-1)'}`,
         display: 'flex', flexDirection: 'column', gap: '0.6rem',
         cursor: clickable ? 'pointer' : 'default',
+        transition: 'border-color 0.25s',
       }}
+      onClick={handleClick}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-muted)' }}>
           {svc.sub}
         </p>
-        <GlowDot status={svc.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {!clickable && (
+            <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', color: 'var(--c-dim)', transition: 'transform 0.2s', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none' }}>▾</span>
+          )}
+          <GlowDot status={svc.status} />
+        </div>
       </div>
       <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.1rem', color: 'var(--c-fg)', lineHeight: 1 }}>
         {svc.name}{clickable && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted)', marginLeft: '0.4rem' }}>↗</span>}
@@ -84,11 +179,21 @@ function ServiceTile({ svc, i, clickable }) {
           {statusLabel}
         </p>
         {svc.ms != null && (
-          <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)' }}>
+          <motion.p
+            key={svc.ms}
+            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+            style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)' }}
+          >
             {svc.ms}ms
-          </p>
+          </motion.p>
         )}
       </div>
+
+      <AnimatePresence>
+        {expanded && !clickable && (
+          <AppLogDrawer svc={svc} log={log} history={history} />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -176,7 +281,7 @@ function ErrorLog({ entries }) {
 
 // ── System panel ────────────────────────────────────────────────
 
-function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clock }) {
+function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clock, msHistory }) {
   const allUp   = services.length > 0 && services.every(s => s.status === 'up')
   const anyDown = services.some(s => s.status === 'down')
 
@@ -196,9 +301,13 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
           <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '0.4rem' }}>
             system status // live
           </p>
-          <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.4rem', fontWeight: 400, color: 'var(--c-fg)', fontStyle: 'italic' }}>
+          <motion.p
+            key={refreshing ? 'checking' : allUp ? 'up' : anyDown ? 'down' : 'init'}
+            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+            style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.4rem', fontWeight: 400, color: 'var(--c-fg)', fontStyle: 'italic' }}
+          >
             {refreshing ? 'checking…' : allUp ? 'All systems operational.' : anyDown ? 'Degraded. See below.' : 'Initializing…'}
-          </p>
+          </motion.p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
           {clock && (
@@ -224,11 +333,13 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
         {services.map((svc, i) =>
           svc.route
-            ? <Link key={svc.url} to={svc.route} style={{ textDecoration: 'none' }}><ServiceTile svc={svc} i={i} clickable /></Link>
-            : <ServiceTile key={svc.url} svc={svc} i={i} />
+            ? <Link key={svc.url} to={svc.route} style={{ textDecoration: 'none' }}>
+                <ServiceTile svc={svc} i={i} clickable log={errorLog} history={msHistory?.[svc.url] ?? []} />
+              </Link>
+            : <ServiceTile key={svc.url} svc={svc} i={i} log={errorLog} history={msHistory?.[svc.url] ?? []} />
         )}
       </div>
 
@@ -239,13 +350,39 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
 
 // ── Analytics components ────────────────────────────────────────
 
+function useCountUp(target, duration = 900) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    if (target == null || isNaN(target)) return
+    const start = Date.now()
+    const from = 0
+    const to = Number(target)
+    const tick = () => {
+      const elapsed = Date.now() - start
+      const progress = Math.min(elapsed / duration, 1)
+      const ease = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(from + (to - from) * ease))
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [target])
+  return display
+}
+
 function Stat({ label, value, sub }) {
+  const isNum = value != null && !isNaN(Number(value))
+  const counted = useCountUp(isNum ? Number(value) : 0)
   return (
-    <div style={{ padding: '1.5rem', background: 'var(--c-surface-3)', borderRadius: '0.75rem', border: '1px solid var(--c-border-3)' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+      style={{ padding: '1.5rem', background: 'var(--c-surface-3)', borderRadius: '0.75rem', border: '1px solid var(--c-border-3)' }}
+    >
       <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-muted2)', marginBottom: '0.5rem' }}>{label}</p>
-      <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '2rem', color: 'var(--c-fg)', lineHeight: 1 }}>{value ?? '—'}</p>
+      <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '2rem', color: 'var(--c-fg)', lineHeight: 1 }}>
+        {value == null ? '—' : isNum ? counted.toLocaleString() : value}
+      </p>
       {sub && <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: 'var(--c-muted2)', marginTop: '0.4rem' }}>{sub}</p>}
-    </div>
+    </motion.div>
   )
 }
 
@@ -263,15 +400,28 @@ function BarChart({ data }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
       {data.map((d, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 40px', gap: '0.75rem', alignItems: 'center' }}>
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -6 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.04 }}
+          style={{ display: 'grid', gridTemplateColumns: '140px 1fr 40px', gap: '0.75rem', alignItems: 'center' }}
+        >
           <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: 'var(--c-body-text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
             {fmt(d.value ?? d.archetype ?? d.tier)}
           </span>
           <div style={{ height: '4px', background: 'var(--c-border-1)', borderRadius: '2px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(d.n / max) * 100}%`, background: 'linear-gradient(90deg, #C4717A, #A89BC4)', borderRadius: '2px' }} />
+            <motion.div
+              initial={{ width: 0 }}
+              whileInView={{ width: `${(d.n / max) * 100}%` }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.04 + 0.1, duration: 0.6, ease: 'easeOut' }}
+              style={{ height: '100%', background: 'linear-gradient(90deg, var(--c-accent), var(--c-purple))', borderRadius: '2px' }}
+            />
           </div>
           <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: 'var(--c-muted2)', textAlign: 'right' }}>{d.n}</span>
-        </div>
+        </motion.div>
       ))}
     </div>
   )
@@ -353,6 +503,7 @@ export default function Robin() {
   const [refreshing, setRefreshing] = useState(false)
   const [errorLog, setErrorLog]   = useState([])
   const [clock, setClock]         = useState('')
+  const [msHistory, setMsHistory] = useState({})
   const prevStatuses              = useRef({})
   const intervalRef               = useRef(null)
 
@@ -389,6 +540,16 @@ export default function Robin() {
     })
 
     setServices(results)
+    setMsHistory(prev => {
+      const next = { ...prev }
+      results.forEach(r => {
+        if (r.ms != null) {
+          const arr = prev[r.url] ?? []
+          next[r.url] = [...arr, r.ms].slice(-12)
+        }
+      })
+      return next
+    })
     setCheckedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
     if (newEntries.length) {
       setErrorLog(log => [...newEntries, ...log].slice(0, LOG_LIMIT))
@@ -526,8 +687,22 @@ export default function Robin() {
             refreshing={refreshing}
             errorLog={errorLog}
             clock={clock}
+            msHistory={msHistory}
           />
         </div>
+
+        {/* Platform Analytics header */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          style={{ marginBottom: '1.25rem', paddingTop: '0.5rem' }}
+        >
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '0.35rem' }}>
+            Platform Analytics
+          </p>
+          <h2 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: 'clamp(18px,2.5vw,28px)', fontWeight: 400, color: 'var(--c-fg)', lineHeight: 1.1 }}>
+            The suite, <em style={{ color: 'var(--c-accent)' }}>in numbers.</em>
+          </h2>
+        </motion.div>
 
         {/* Overview stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '2rem' }}>

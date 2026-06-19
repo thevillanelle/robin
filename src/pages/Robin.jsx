@@ -686,7 +686,7 @@ export default function Robin() {
             <GrowthChart data={data?.growth} />
           </Panel>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
             <Panel title="Kibbe type"><BarChart data={data?.kibbe} /></Panel>
             <Panel title="Color season"><BarChart data={data?.season} /></Panel>
             <Panel title="Trend stance"><BarChart data={data?.trend} /></Panel>

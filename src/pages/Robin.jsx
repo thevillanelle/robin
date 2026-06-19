@@ -1,10 +1,139 @@
-import { useEffect, useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../stores/useAuthStore'
 import { supabase } from '../lib/supabase'
 
 const ADMIN_EMAIL = 'krystine.hall@gmail.com'
 const MIN_COHORT  = 50
+
+const SERVICES = [
+  { name: 'Ritualware',   sub: 'marketing',  url: 'https://ritualware.app/health.json' },
+  { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json' },
+  { name: 'Glow Up',      sub: 'pyramid',     url: 'https://glowup.ritualware.app/health.json' },
+  { name: 'Ritualwhere?', sub: 'map',         url: 'https://where.ritualware.app/health.json' },
+  { name: "m'atelier",    sub: 'studio',      url: 'https://studio.ritualware.app/health.json' },
+  { name: 'Ritualwealth', sub: 'fire',        url: 'https://wealth.ritualware.app/health.json' },
+]
+
+async function checkService(svc) {
+  const t0 = performance.now()
+  try {
+    const res = await fetch(svc.url, { cache: 'no-store' })
+    const ms = Math.round(performance.now() - t0)
+    if (!res.ok) return { ...svc, status: 'down', ms, code: res.status }
+    const json = await res.json()
+    return { ...svc, status: json.status === 'ok' ? 'up' : 'degraded', ms }
+  } catch {
+    const ms = Math.round(performance.now() - t0)
+    return { ...svc, status: 'down', ms, code: 'ERR' }
+  }
+}
+
+function PulseDot({ status }) {
+  const color = status === 'up' ? '#6AAD8A' : status === 'degraded' ? '#C4A85A' : status === 'down' ? '#C4717A' : '#3a3028'
+  return (
+    <div style={{ position: 'relative', width: 10, height: 10, flexShrink: 0 }}>
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: '50%', background: color,
+        animation: status === 'up' ? 'pulse-ring 2.5s ease-out infinite' : 'none',
+        opacity: 0.35,
+        transform: 'scale(1)',
+      }} />
+      <div style={{ position: 'absolute', inset: '2px', borderRadius: '50%', background: color }} />
+    </div>
+  )
+}
+
+function ServiceTile({ svc, i }) {
+  const statusLabel = svc.status === 'up' ? 'operational' : svc.status === 'down' ? 'down' : svc.status === 'degraded' ? 'degraded' : 'checking…'
+  const statusColor = svc.status === 'up' ? '#6AAD8A' : svc.status === 'down' ? '#C4717A' : svc.status === 'degraded' ? '#C4A85A' : '#3a3028'
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+      style={{
+        padding: '1.25rem 1.5rem',
+        background: 'rgba(255,255,255,0.025)',
+        borderRadius: '0.75rem',
+        border: `1px solid ${svc.status === 'down' ? 'rgba(196,113,122,0.25)' : 'rgba(255,255,255,0.06)'}`,
+        display: 'flex', flexDirection: 'column', gap: '0.6rem',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#5a5048' }}>
+          {svc.sub}
+        </p>
+        <PulseDot status={svc.status} />
+      </div>
+      <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.1rem', color: '#FAF7F2', lineHeight: 1 }}>
+        {svc.name}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: statusColor, letterSpacing: '0.1em' }}>
+          {statusLabel}
+        </p>
+        {svc.ms != null && (
+          <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#3a3028' }}>
+            {svc.ms}ms
+          </p>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
+function SystemPanel({ services, checkedAt, onRefresh, refreshing }) {
+  const allUp   = services.length > 0 && services.every(s => s.status === 'up')
+  const anyDown = services.some(s => s.status === 'down')
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+      style={{
+        marginBottom: '2rem',
+        padding: '2rem',
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '1rem',
+        border: anyDown ? '1px solid rgba(196,113,122,0.3)' : '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C4717A', marginBottom: '0.4rem' }}>
+            system status // live
+          </p>
+          <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.4rem', fontWeight: 400, color: '#FAF7F2', fontStyle: 'italic' }}>
+            {refreshing ? 'checking…' : allUp ? 'All systems operational.' : anyDown ? 'Degraded. See below.' : 'Initializing…'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            style={{
+              fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em',
+              color: refreshing ? '#3a3028' : '#8B7E72',
+              background: 'none', border: '1px solid rgba(255,255,255,0.1)',
+              padding: '0.4rem 1rem', borderRadius: '4px', cursor: refreshing ? 'default' : 'pointer',
+            }}
+          >
+            {refreshing ? '…' : 'refresh'}
+          </button>
+          {checkedAt && (
+            <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#3a3028' }}>
+              last checked {checkedAt}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+        {services.map((svc, i) => <ServiceTile key={svc.url} svc={svc} i={i} />)}
+      </div>
+    </motion.div>
+  )
+}
+
+// ── Analytics components ────────────────────────────────────────
 
 function Stat({ label, value, sub }) {
   return (
@@ -97,13 +226,36 @@ function Panel({ title, children, span = 1 }) {
 
 const fmt = (s) => s ? String(s).replace(/_/g, ' ') : '—'
 
+// ── Main ────────────────────────────────────────────────────────
+
 export default function Robin() {
   const { user, loading: authLoading, signInWithGoogle, initialize } = useAuthStore()
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
+  const [data, setData]           = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(null)
+
+  // system health state
+  const [services, setServices]   = useState(SERVICES.map(s => ({ ...s, status: 'loading', ms: null })))
+  const [checkedAt, setCheckedAt] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const intervalRef = useRef(null)
 
   useEffect(() => { initialize() }, [])
+
+  const runHealthChecks = useCallback(async () => {
+    setRefreshing(true)
+    const results = await Promise.all(SERVICES.map(checkService))
+    setServices(results)
+    setCheckedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+    setRefreshing(false)
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    runHealthChecks()
+    intervalRef.current = setInterval(runHealthChecks, 5 * 60 * 1000)
+    return () => clearInterval(intervalRef.current)
+  }, [user, runHealthChecks])
 
   const load = useCallback(async () => {
     if (!user) return
@@ -189,6 +341,13 @@ export default function Robin() {
 
   return (
     <main style={{ minHeight: '100vh', background: '#0D0F0E', color: '#FAF7F2', padding: 'clamp(3rem,6vw,5rem) clamp(1rem,4vw,3rem)' }}>
+      <style>{`
+        @keyframes pulse-ring {
+          0%   { transform: scale(1);   opacity: 0.35; }
+          60%  { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+      `}</style>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
 
         {/* Header */}
@@ -201,6 +360,9 @@ export default function Robin() {
             The suite, <span style={{ fontStyle: 'italic', color: '#C4717A' }}>in aggregate.</span>
           </h1>
         </motion.div>
+
+        {/* System Status */}
+        <SystemPanel services={services} checkedAt={checkedAt} onRefresh={runHealthChecks} refreshing={refreshing} />
 
         {/* Overview stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '2rem' }}>

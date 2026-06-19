@@ -10,7 +10,7 @@ const MIN_COHORT  = 50
 
 const SERVICES = [
   { name: 'Ritualware',   sub: 'marketing',  url: 'https://ritualware.app/health.json',          route: null },
-  { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json',    route: null },
+  { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json',    route: '/app/wear' },
   { name: 'Glow Up',      sub: 'pyramid',     url: 'https://glowup.ritualware.app/health.json',  route: null },
   { name: 'Ritualwhere?', sub: 'map',         url: 'https://where.ritualware.app/health.json',   route: null },
   { name: "m'atelier",    sub: 'studio',      url: 'https://studio.ritualware.app/health.json',  route: null },

@@ -289,7 +289,7 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
         {services.map((svc, i) => (
           <ServiceTile
             key={svc.url}

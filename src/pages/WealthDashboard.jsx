@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import ThemeDropdown from '../components/ThemeDropdown'
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -21,12 +22,12 @@ const LS = {
 
 const mono = { fontFamily: 'monospace' }
 const serif = { fontFamily: '"Playfair Display", Georgia, serif' }
-const muted = '#5a5048'
-const accent = '#C4717A'
-const dim = '#3a3028'
-const fg = '#FAF7F2'
-const panelBg = 'rgba(255,255,255,0.025)'
-const panelBorder = '1px solid rgba(255,255,255,0.07)'
+const muted     = 'var(--c-muted)'
+const accent    = 'var(--c-accent)'
+const dim       = 'var(--c-dim)'
+const fg        = 'var(--c-fg)'
+const panelBg   = 'var(--c-surface-1)'
+const panelBorder = '1px solid var(--c-border-2)'
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -69,6 +70,18 @@ async function fetchInsider(ticker, key) {
   } catch { return [] }
 }
 
+async function fetchCandles(ticker, key) {
+  try {
+    const to   = Math.floor(Date.now() / 1000)
+    const from = to - 60 * 86400
+    const r = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`)
+    if (!r.ok) return null
+    const d = await r.json()
+    if (d.s !== 'ok' || !d.c?.length) return null
+    return d.t.map((t, i) => ({ t, o: d.o[i], h: d.h[i], l: d.l[i], c: d.c[i], v: d.v[i] }))
+  } catch { return null }
+}
+
 async function fetchSEC(ticker) {
   try {
     const from = new Date(Date.now() - 90 * 864e5).toISOString().slice(0,10)
@@ -98,14 +111,14 @@ function ApiKeySetup({ onSave }) {
           onChange={e => setVal(e.target.value)}
           placeholder="pk_xxxxxxxxxxxxxxx"
           style={{
-            flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)',
+            flex: 1, background: 'var(--c-input-bg)', border: '1px solid var(--c-border-3)',
             borderRadius: '4px', padding: '0.6rem 0.9rem',
             ...mono, fontSize: '0.75rem', color: fg, outline: 'none',
           }}
         />
         <button
           onClick={() => val.trim() && onSave(val.trim())}
-          style={{ ...mono, fontSize: '0.65rem', letterSpacing: '0.12em', color: fg, background: 'rgba(196,113,122,0.15)', border: `1px solid ${accent}`, padding: '0.6rem 1.25rem', borderRadius: '4px', cursor: 'pointer' }}
+          style={{ ...mono, fontSize: '0.65rem', letterSpacing: '0.12em', color: fg, background: 'var(--c-accent-medium)', border: `1px solid ${accent}`, padding: '0.6rem 1.25rem', borderRadius: '4px', cursor: 'pointer' }}
         >
           save
         </button>
@@ -120,7 +133,7 @@ function TickerBar({ quotes, selected, onSelect }) {
   if (!quotes.length) return null
   const band = [...quotes, ...quotes, ...quotes]
   return (
-    <div style={{ overflow: 'hidden', borderTop: `1px solid rgba(255,255,255,0.05)`, borderBottom: `1px solid rgba(255,255,255,0.05)`, padding: '0.55rem 0', marginBottom: '1.5rem', cursor: 'pointer' }}>
+    <div style={{ overflow: 'hidden', borderTop: `1px solid var(--c-border-1)`, borderBottom: `1px solid var(--c-border-1)`, padding: '0.55rem 0', marginBottom: '1.5rem', cursor: 'pointer' }}>
       <div style={{ display: 'flex', gap: '3.5rem', whiteSpace: 'nowrap', animation: 'ticker-scroll 50s linear infinite' }}>
         {band.map((q, i) => (
           <span
@@ -130,7 +143,7 @@ function TickerBar({ quotes, selected, onSelect }) {
           >
             <span style={{ ...mono, fontSize: '0.65rem', color: selected === q.ticker ? accent : fg }}>{q.ticker}</span>
             <span style={{ ...mono, fontSize: '0.65rem', color: fg }}>{fmtPrice(q.c)}</span>
-            <span style={{ ...mono, fontSize: '0.6rem', color: q.dp >= 0 ? '#6AAD8A' : accent }}>{fmtPct(q.dp)}</span>
+            <span style={{ ...mono, fontSize: '0.6rem', color: q.dp >= 0 ? 'var(--c-up)' : accent }}>{fmtPct(q.dp)}</span>
           </span>
         ))}
       </div>
@@ -164,8 +177,8 @@ function Watchlist({ watchlist, quotes, selected, onSelect, onAdd, onRemove }) {
             style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '0.65rem 0.9rem',
-              background: active ? 'rgba(196,113,122,0.1)' : 'rgba(255,255,255,0.02)',
-              border: active ? `1px solid rgba(196,113,122,0.35)` : '1px solid rgba(255,255,255,0.05)',
+              background: active ? 'var(--c-accent-soft)' : 'var(--c-surface-1)',
+              border: active ? `1px solid var(--c-accent-border-strong)` : '1px solid var(--c-border-1)',
               borderRadius: '0.5rem', cursor: 'pointer', textAlign: 'left',
               transition: 'all 0.2s',
             }}
@@ -175,7 +188,7 @@ function Watchlist({ watchlist, quotes, selected, onSelect, onAdd, onRemove }) {
               {q && <span style={{ ...mono, fontSize: '0.55rem', color: muted }}>{fmtPrice(q.c)}</span>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.15rem' }}>
-              {q && <span style={{ ...mono, fontSize: '0.6rem', color: up ? '#6AAD8A' : accent }}>{fmtPct(q.dp)}</span>}
+              {q && <span style={{ ...mono, fontSize: '0.6rem', color: up ? 'var(--c-up)' : accent }}>{fmtPct(q.dp)}</span>}
               <button
                 onClick={e => { e.stopPropagation(); onRemove(ticker) }}
                 style={{ ...mono, fontSize: '0.55rem', color: dim, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
@@ -195,7 +208,7 @@ function Watchlist({ watchlist, quotes, selected, onSelect, onAdd, onRemove }) {
             placeholder="TICKER"
             maxLength={8}
             style={{
-              flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.12)',
+              flex: 1, background: 'var(--c-input-bg)', border: '1px solid var(--c-border-3)',
               borderRadius: '4px', padding: '0.5rem 0.65rem',
               ...mono, fontSize: '0.7rem', color: fg, outline: 'none', textTransform: 'uppercase',
             }}
@@ -203,7 +216,7 @@ function Watchlist({ watchlist, quotes, selected, onSelect, onAdd, onRemove }) {
           <button onClick={handleAdd} style={{ ...mono, fontSize: '0.65rem', color: accent, background: 'none', border: `1px solid ${accent}`, borderRadius: '4px', padding: '0.4rem 0.75rem', cursor: 'pointer' }}>+</button>
         </div>
       ) : (
-        <button onClick={() => setAdding(true)} style={{ ...mono, fontSize: '0.6rem', color: dim, background: 'none', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.5rem', padding: '0.55rem', cursor: 'pointer', marginTop: '0.1rem' }}>
+        <button onClick={() => setAdding(true)} style={{ ...mono, fontSize: '0.6rem', color: dim, background: 'none', border: '1px dashed var(--c-surface-4)', borderRadius: '0.5rem', padding: '0.55rem', cursor: 'pointer', marginTop: '0.1rem' }}>
           + add ticker
         </button>
       )}
@@ -233,7 +246,7 @@ function WorldClock({ cities, onEdit }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
       {cities.map(city => (
-        <div key={city.tz} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div key={city.tz} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0.5rem 0', borderBottom: '1px solid var(--c-surface-2)' }}>
           <span style={{ ...mono, fontSize: '0.6rem', color: muted, letterSpacing: '0.1em' }}>{city.label.toUpperCase()}</span>
           <span style={{ ...mono, fontSize: '0.75rem', color: fg }}>{times[city.tz] ?? '—'}</span>
         </div>
@@ -245,42 +258,93 @@ function WorldClock({ cities, onEdit }) {
   )
 }
 
+// ── Live candlestick chart ────────────────────────────────────────
+
+function CandlestickChart({ candles }) {
+  const W = 600, H = 200
+  const PAD = { top: 12, right: 16, bottom: 24, left: 52 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top - PAD.bottom
+
+  if (!candles?.length) return (
+    <div style={{ height: H, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--c-border-1)', borderRadius: '0.5rem' }}>
+      <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading chart…</p>
+    </div>
+  )
+
+  const prices = candles.flatMap(c => [c.h, c.l])
+  const minP   = Math.min(...prices)
+  const maxP   = Math.max(...prices)
+  const range  = maxP - minP || 1
+  const scaleY = v => PAD.top + ((maxP - v) / range) * chartH
+  const scaleX = i => PAD.left + (i / (candles.length - 1 || 1)) * chartW
+  const barW   = Math.max(2, Math.floor(chartW / candles.length) - 1)
+  const ticks  = [0, 0.25, 0.5, 0.75, 1].map(f => minP + range * f)
+  const fmt    = d => new Date(d.t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+  return (
+    <div style={{ borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--c-border-1)', background: 'var(--c-surface-1)' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
+        <style>{`@keyframes candle-in { from { opacity:0; transform:scaleY(0.3) } to { opacity:1; transform:scaleY(1) } }`}</style>
+
+        {/* grid */}
+        {ticks.map((v, i) => (
+          <g key={i}>
+            <line x1={PAD.left} x2={W - PAD.right} y1={scaleY(v)} y2={scaleY(v)} stroke="var(--c-border-1)" strokeWidth="0.5" />
+            <text x={PAD.left - 5} y={scaleY(v) + 3} textAnchor="end" fill="var(--c-dim)" fontSize="7.5" fontFamily="monospace">
+              {v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
+            </text>
+          </g>
+        ))}
+
+        {/* candles */}
+        {candles.map((c, i) => {
+          const x     = scaleX(i)
+          const up    = c.c >= c.o
+          const col   = up ? 'var(--c-up)' : 'var(--c-accent)'
+          const top   = scaleY(Math.max(c.o, c.c))
+          const bodyH = Math.max(1, Math.abs(scaleY(c.o) - scaleY(c.c)))
+          return (
+            <g key={i} style={{ animation: `candle-in 0.25s ease ${i * 0.006}s both`, transformOrigin: `${x}px ${scaleY(c.l)}px` }}>
+              <line x1={x} x2={x} y1={scaleY(c.h)} y2={scaleY(c.l)} stroke={col} strokeWidth="1" opacity="0.6" />
+              <rect x={x - barW / 2} y={top} width={barW} height={bodyH} fill={col} opacity="0.9" rx="0.5" />
+            </g>
+          )
+        })}
+
+        {/* date axis */}
+        <text x={PAD.left} y={H - 5} fill="var(--c-dim)" fontSize="7.5" fontFamily="monospace">{fmt(candles[0])}</text>
+        <text x={W - PAD.right} y={H - 5} textAnchor="end" fill="var(--c-dim)" fontSize="7.5" fontFamily="monospace">{fmt(candles[candles.length - 1])}</text>
+      </svg>
+    </div>
+  )
+}
+
 // ── Stock chart + detail ─────────────────────────────────────────
 
-function StockDetail({ ticker, quote }) {
+function StockDetail({ ticker, quote, candles }) {
   const upDown = quote?.dp >= 0
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* price strip */}
       {quote && (
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
           <span style={{ ...serif, fontSize: '2rem', color: fg, lineHeight: 1 }}>{fmtPrice(quote.c)}</span>
-          <span style={{ ...mono, fontSize: '0.85rem', color: upDown ? '#6AAD8A' : accent }}>{fmtChg(quote.d)} ({fmtPct(quote.dp)})</span>
+          <span style={{ ...mono, fontSize: '0.85rem', color: upDown ? 'var(--c-up)' : accent }}>{fmtChg(quote.d)} ({fmtPct(quote.dp)})</span>
           <span style={{ ...mono, fontSize: '0.6rem', color: muted }}>H {fmtPrice(quote.h)} · L {fmtPrice(quote.l)} · prev close {fmtPrice(quote.pc)}</span>
         </div>
       )}
 
-      {/* Finviz chart */}
-      <div style={{ borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', background: '#000' }}>
-        <img
-          src={`https://finviz.com/chart.ashx?t=${ticker}&ty=c&ta=1&p=d&s=l`}
-          alt={`${ticker} chart`}
-          style={{ width: '100%', display: 'block', minHeight: '180px', objectFit: 'cover' }}
-          key={ticker}
-        />
-      </div>
+      <CandlestickChart candles={candles} />
 
-      {/* links */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         {[
-          { label: 'Finviz', href: `https://finviz.com/quote.ashx?t=${ticker}` },
-          { label: 'SEC EDGAR', href: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${ticker}&type=&dateb=&owner=include&count=10` },
+          { label: 'Finviz',        href: `https://finviz.com/quote.ashx?t=${ticker}` },
+          { label: 'SEC EDGAR',     href: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${ticker}&type=&dateb=&owner=include&count=10` },
           { label: 'Google Trends', href: `https://trends.google.com/trends/explore?q=${ticker}&geo=US` },
-          { label: 'Reddit', href: `https://www.reddit.com/search/?q=${ticker}+stock&sort=hot` },
-          { label: 'Short Interest', href: `https://finviz.com/screener.ashx?v=152&f=sh_short_o30` },
+          { label: 'Reddit',        href: `https://www.reddit.com/search/?q=${ticker}+stock&sort=hot` },
         ].map(({ label, href }) => (
           <a key={label} href={href} target="_blank" rel="noreferrer"
-            style={{ ...mono, fontSize: '0.6rem', color: muted, textDecoration: 'none', letterSpacing: '0.08em', borderBottom: `1px solid ${dim}` }}>
+            style={{ ...mono, fontSize: '0.6rem', color: muted, textDecoration: 'none', letterSpacing: '0.08em', borderBottom: `1px solid var(--c-dim)` }}>
             {label} ↗
           </a>
         ))}
@@ -298,7 +362,7 @@ function NewsFeed({ items }) {
       {items.map((n, i) => (
         <a key={i} href={n.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'block' }}>
           <p style={{ ...mono, fontSize: '0.55rem', color: dim, marginBottom: '0.2rem' }}>{n.source} · {ago(n.datetime)}</p>
-          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: '#C8BFB0', lineHeight: 1.4 }}>{n.headline}</p>
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: 'var(--c-body-text)', lineHeight: 1.4 }}>{n.headline}</p>
         </a>
       ))}
     </div>
@@ -314,14 +378,14 @@ function InsiderPanel({ items }) {
       {items.map((t, i) => {
         const isBuy = (t.transactionType ?? t.change ?? 0) > 0
         return (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0', borderBottom: '1px solid var(--c-surface-2)' }}>
             <div>
-              <p style={{ ...mono, fontSize: '0.6rem', color: isBuy ? '#6AAD8A' : accent }}>
+              <p style={{ ...mono, fontSize: '0.6rem', color: isBuy ? 'var(--c-up)' : accent }}>
                 {isBuy ? 'BUY' : 'SELL'} · {t.name ?? t.filingPerson ?? '—'}
               </p>
               <p style={{ ...mono, fontSize: '0.55rem', color: muted }}>{t.transactionDate ?? t.filingDate ?? '—'}</p>
             </div>
-            <p style={{ ...mono, fontSize: '0.65rem', color: isBuy ? '#6AAD8A' : accent }}>
+            <p style={{ ...mono, fontSize: '0.65rem', color: isBuy ? 'var(--c-up)' : accent }}>
               {t.change != null ? `${t.change > 0 ? '+' : ''}${Number(t.change).toLocaleString()}` : '—'}
             </p>
           </div>
@@ -338,12 +402,12 @@ function SECPanel({ items }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '260px', overflowY: 'auto' }}>
       {items.map((f, i) => (
-        <div key={i} style={{ padding: '0.45rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div key={i} style={{ padding: '0.45rem 0', borderBottom: '1px solid var(--c-surface-2)' }}>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'baseline', marginBottom: '0.15rem' }}>
             <span style={{ ...mono, fontSize: '0.6rem', color: accent }}>{f.form_type}</span>
             <span style={{ ...mono, fontSize: '0.55rem', color: dim }}>{f.file_date}</span>
           </div>
-          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: '#C8BFB0', lineHeight: 1.3 }}>
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: 'var(--c-body-text)', lineHeight: 1.3 }}>
             {f.entity_name}
           </p>
         </div>
@@ -418,7 +482,7 @@ function ItineraryWidget() {
           placeholder="9:00"
           style={{
             width: '56px', flexShrink: 0,
-            background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+            background: 'var(--c-input-bg)', border: '1px solid var(--c-border-3)',
             borderRadius: '4px', padding: '0.5rem 0.6rem',
             ...mono, fontSize: '0.7rem', color: fg, outline: 'none',
           }}
@@ -431,7 +495,7 @@ function ItineraryWidget() {
           placeholder="add to your day…"
           style={{
             flex: 1,
-            background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+            background: 'var(--c-input-bg)', border: '1px solid var(--c-border-3)',
             borderRadius: '4px', padding: '0.5rem 0.75rem',
             fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: fg, outline: 'none',
           }}
@@ -448,19 +512,19 @@ function ItineraryWidget() {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
         {items.map((it) => (
-          <div key={it.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.55rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <div key={it.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.55rem 0', borderBottom: '1px solid var(--c-surface-2)' }}>
             {/* checkbox */}
             <button
               onClick={() => toggle(it.id)}
               style={{
                 flexShrink: 0, marginTop: '2px',
                 width: 14, height: 14, borderRadius: '3px',
-                border: it.done ? `1px solid #6AAD8A` : '1px solid rgba(255,255,255,0.2)',
+                border: it.done ? `1px solid var(--c-up)` : '1px solid var(--c-border-4)',
                 background: it.done ? 'rgba(106,173,138,0.2)' : 'transparent',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {it.done && <span style={{ color: '#6AAD8A', fontSize: '9px', lineHeight: 1 }}>✓</span>}
+              {it.done && <span style={{ color: 'var(--c-up)', fontSize: '9px', lineHeight: 1 }}>✓</span>}
             </button>
 
             {/* time */}
@@ -482,7 +546,7 @@ function ItineraryWidget() {
               ) : (
                 <span
                   onClick={() => { setEditingIdx(it.id); setEditNote(it.note) }}
-                  style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: it.done ? dim : '#C8BFB0', cursor: 'text', textDecoration: it.done ? 'line-through' : 'none', lineHeight: 1.4 }}
+                  style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.8rem', color: it.done ? dim : 'var(--c-body-text)', cursor: 'text', textDecoration: it.done ? 'line-through' : 'none', lineHeight: 1.4 }}
                 >
                   {it.note}
                 </span>
@@ -541,11 +605,11 @@ function yearsToFire(netWorth, fireNumber, annualSavings, annualReturn) {
 function ProgressBar({ pct, color = accent }) {
   const capped = Math.min(pct, 100)
   return (
-    <div style={{ height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ height: '6px', background: 'var(--c-border-1)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0,
         width: `${capped}%`,
-        background: pct >= 100 ? '#6AAD8A' : `linear-gradient(90deg, ${color}, #A89BC4)`,
+        background: pct >= 100 ? 'var(--c-up)' : `linear-gradient(90deg, ${color}, #A89BC4)`,
         borderRadius: '3px',
         transition: 'width 0.6s ease',
         boxShadow: `0 0 8px ${color}55`,
@@ -579,7 +643,7 @@ function FireWidget() {
           value={draft[k] ?? ''}
           onChange={e => set(k, e.target.value)}
           style={{
-            flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+            flex: 1, background: 'var(--c-input-bg)', border: '1px solid var(--c-border-3)',
             borderRadius: '4px', padding: '0.45rem 0.6rem',
             ...mono, fontSize: '0.7rem', color: fg, outline: 'none', width: '100%',
           }}
@@ -603,11 +667,11 @@ function FireWidget() {
       </div>
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         <button onClick={save}
-          style={{ ...mono, fontSize: '0.65rem', color: fg, background: 'rgba(196,113,122,0.15)', border: `1px solid ${accent}`, padding: '0.55rem 1.25rem', borderRadius: '4px', cursor: 'pointer' }}>
+          style={{ ...mono, fontSize: '0.65rem', color: fg, background: 'var(--c-accent-medium)', border: `1px solid ${accent}`, padding: '0.55rem 1.25rem', borderRadius: '4px', cursor: 'pointer' }}>
           save
         </button>
         <button onClick={() => { setDraft(data); setEditing(false) }}
-          style={{ ...mono, fontSize: '0.65rem', color: muted, background: 'none', border: '1px solid rgba(255,255,255,0.1)', padding: '0.55rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+          style={{ ...mono, fontSize: '0.65rem', color: muted, background: 'none', border: '1px solid var(--c-border-3)', padding: '0.55rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
           cancel
         </button>
       </div>
@@ -628,7 +692,7 @@ function FireWidget() {
       <div style={{ marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.6rem' }}>
           <span style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.12em', color: muted, textTransform: 'uppercase' }}>progress to FIRE</span>
-          <span style={{ ...mono, fontSize: '0.85rem', color: firePct >= 100 ? '#6AAD8A' : fg }}>{firePct.toFixed(2)}%</span>
+          <span style={{ ...mono, fontSize: '0.85rem', color: firePct >= 100 ? 'var(--c-up)' : fg }}>{firePct.toFixed(2)}%</span>
         </div>
         <ProgressBar pct={firePct} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
@@ -642,13 +706,13 @@ function FireWidget() {
 
         {/* assets */}
         <div style={{ padding: '1rem', background: 'rgba(106,173,138,0.06)', border: '1px solid rgba(106,173,138,0.15)', borderRadius: '0.75rem' }}>
-          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6AAD8A', marginBottom: '0.35rem' }}>assets</p>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--c-up)', marginBottom: '0.35rem' }}>assets</p>
           <p style={{ ...serif, fontSize: '1.5rem', color: fg, lineHeight: 1 }}>{fmtDollar(data.assets)}</p>
         </div>
 
         {/* net worth */}
-        <div style={{ padding: '1rem', background: netWorth >= 0 ? 'rgba(106,173,138,0.06)' : 'rgba(196,113,122,0.06)', border: `1px solid ${netWorth >= 0 ? 'rgba(106,173,138,0.15)' : 'rgba(196,113,122,0.15)'}`, borderRadius: '0.75rem' }}>
-          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: netWorth >= 0 ? '#6AAD8A' : accent, marginBottom: '0.35rem' }}>net worth</p>
+        <div style={{ padding: '1rem', background: netWorth >= 0 ? 'rgba(106,173,138,0.06)' : 'rgba(196,113,122,0.06)', border: `1px solid ${netWorth >= 0 ? 'rgba(106,173,138,0.15)' : 'var(--c-accent-medium)'}`, borderRadius: '0.75rem' }}>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: netWorth >= 0 ? 'var(--c-up)' : accent, marginBottom: '0.35rem' }}>net worth</p>
           <p style={{ ...serif, fontSize: '1.5rem', color: fg, lineHeight: 1 }}>{fmtDollar(netWorth)}</p>
         </div>
 
@@ -692,7 +756,7 @@ function FireWidget() {
                 </div>
               )
             })}
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--c-border-1)' }}>
               <span style={{ ...mono, fontSize: '0.6rem', color: fg }}>total</span>
               <span style={{ ...mono, fontSize: '0.65rem', color: accent }}>{fmtDollar(totalDebts)}</span>
             </div>
@@ -709,12 +773,12 @@ function FireWidget() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ ...mono, fontSize: '0.6rem', color: muted }}>target above salary</span>
-              <span style={{ ...mono, fontSize: '0.65rem', color: '#6AAD8A' }}>+{fmtDollar(data.incomeTarget)}</span>
+              <span style={{ ...mono, fontSize: '0.65rem', color: 'var(--c-up)' }}>+{fmtDollar(data.incomeTarget)}</span>
             </div>
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ height: '1px', background: 'var(--c-border-1)' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ ...mono, fontSize: '0.6rem', color: fg }}>income needed</span>
-              <span style={{ ...serif, fontSize: '1.1rem', color: '#6AAD8A', lineHeight: 1 }}>{data.currentSalary ? fmtDollar(incomeNeeded) : `+${fmtDollar(incomeGap)} over salary`}</span>
+              <span style={{ ...serif, fontSize: '1.1rem', color: 'var(--c-up)', lineHeight: 1 }}>{data.currentSalary ? fmtDollar(incomeNeeded) : `+${fmtDollar(incomeGap)} over salary`}</span>
             </div>
           </div>
         </div>
@@ -766,12 +830,12 @@ function CityEditor({ cities, onSave, onClose }) {
   ]
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ background: '#171410', border: panelBorder, borderRadius: '1rem', padding: '2rem', maxWidth: 420, width: '90%' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--c-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+      <div style={{ background: 'var(--c-modal-bg)', border: panelBorder, borderRadius: '1rem', padding: '2rem', maxWidth: 420, width: '90%' }}>
         <p style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: accent, marginBottom: '1rem' }}>edit world clock</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem', maxHeight: '200px', overflowY: 'auto' }}>
           {list.map((c, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid var(--c-border-1)' }}>
               <span style={{ ...mono, fontSize: '0.65rem', color: fg }}>{c.label}</span>
               <button onClick={() => setList(list.filter((_, j) => j !== i))}
                 style={{ ...mono, fontSize: '0.6rem', color: dim, background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
@@ -780,10 +844,10 @@ function CityEditor({ cities, onSave, onClose }) {
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="City name"
-            style={{ flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '0.5rem 0.7rem', ...mono, fontSize: '0.65rem', color: fg, outline: 'none' }} />
+            style={{ flex: 1, background: 'var(--c-input-bg)', border: '1px solid var(--c-border-3)', borderRadius: '4px', padding: '0.5rem 0.7rem', ...mono, fontSize: '0.65rem', color: fg, outline: 'none' }} />
         </div>
         <select value={newTz} onChange={e => setNewTz(e.target.value)}
-          style={{ width: '100%', marginBottom: '0.75rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '0.5rem 0.7rem', ...mono, fontSize: '0.65rem', color: newTz ? fg : muted, outline: 'none' }}>
+          style={{ width: '100%', marginBottom: '0.75rem', background: 'var(--c-input-bg)', border: '1px solid var(--c-border-3)', borderRadius: '4px', padding: '0.5rem 0.7rem', ...mono, fontSize: '0.65rem', color: newTz ? fg : muted, outline: 'none' }}>
           <option value="">select timezone</option>
           {commonTzs.map(tz => <option key={tz} value={tz}>{tz}</option>)}
         </select>
@@ -793,11 +857,11 @@ function CityEditor({ cities, onSave, onClose }) {
             add city
           </button>
           <button onClick={() => { onSave(list); onClose() }}
-            style={{ ...mono, fontSize: '0.6rem', color: fg, background: 'rgba(196,113,122,0.15)', border: `1px solid ${accent}`, borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer', marginLeft: 'auto' }}>
+            style={{ ...mono, fontSize: '0.6rem', color: fg, background: 'var(--c-accent-medium)', border: `1px solid ${accent}`, borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer', marginLeft: 'auto' }}>
             save
           </button>
           <button onClick={onClose}
-            style={{ ...mono, fontSize: '0.6rem', color: muted, background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+            style={{ ...mono, fontSize: '0.6rem', color: muted, background: 'none', border: '1px solid var(--c-border-3)', borderRadius: '4px', padding: '0.5rem 1rem', cursor: 'pointer' }}>
             cancel
           </button>
         </div>
@@ -828,6 +892,7 @@ export default function WealthDashboard() {
   const [news, setNews]             = useState([])
   const [insider, setInsider]       = useState([])
   const [secFiles, setSecFiles]     = useState([])
+  const [candles, setCandles]       = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [editingCities, setEditingCities] = useState(false)
   const quoteTimer = useRef(null)
@@ -868,13 +933,14 @@ export default function WealthDashboard() {
   useEffect(() => {
     if (!selected || !apiKey) return
     setLoadingDetail(true)
-    setNews([]); setInsider([]); setSecFiles([])
+    setNews([]); setInsider([]); setSecFiles([]); setCandles(null)
     Promise.all([
       fetchNews(selected, apiKey),
       fetchInsider(selected, apiKey),
       fetchSEC(selected),
-    ]).then(([n, ins, sec]) => {
-      setNews(n); setInsider(ins); setSecFiles(sec)
+      fetchCandles(selected, apiKey),
+    ]).then(([n, ins, sec, cdl]) => {
+      setNews(n); setInsider(ins); setSecFiles(sec); setCandles(cdl)
       setLoadingDetail(false)
     })
   }, [selected, apiKey])
@@ -882,19 +948,22 @@ export default function WealthDashboard() {
   const quoteList = Object.values(quotes)
 
   return (
-    <main style={{ minHeight: '100vh', background: '#0D0F0E', color: fg, padding: 'clamp(2rem,4vw,3.5rem) clamp(1rem,3vw,2.5rem)' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--c-bg)', color: fg, padding: 'clamp(2rem,4vw,3.5rem) clamp(1rem,3vw,2.5rem)' }}>
       <style>{`
         @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--c-surface-4); border-radius: 2px; }
       `}</style>
       <div style={{ maxWidth: '1300px', margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '1.5rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
-          <Link to="/" style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.15em', color: muted, textDecoration: 'none' }}>← robin</Link>
-          <p style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.25em', color: accent }}>RITUALWEALTH // FIRE COMMAND</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '1.5rem' }}>
+            <Link to="/" style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.15em', color: muted, textDecoration: 'none' }}>← robin</Link>
+            <p style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.25em', color: accent }}>RITUALWEALTH // FIRE COMMAND</p>
+          </div>
+          <ThemeDropdown />
         </div>
 
         {/* API key gate */}
@@ -913,7 +982,7 @@ export default function WealthDashboard() {
           {/* Center: stock detail */}
           <Panel title={selected ? `${selected} // analysis` : 'click any ticker above'}>
             {selected
-              ? <StockDetail ticker={selected} quote={quotes[selected]} />
+              ? <StockDetail ticker={selected} quote={quotes[selected]} candles={candles} />
               : <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>click a ticker in the bar to pull up its chart, filings, and insider moves</p>
             }
           </Panel>

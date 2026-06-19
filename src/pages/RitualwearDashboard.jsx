@@ -224,23 +224,51 @@ function NewsFeed({ articles, loading, error, query, onQueryChange }) {
 
 // ── Trend Radar ──────────────────────────────────────────────────
 
-function TrendRadar({ trends, onEdit }) {
+function SourceDrawer({ matchedArticles }) {
+  if (!matchedArticles.length) return (
+    <p style={{ ...mono, fontSize: '0.55rem', color: dim, padding: '0.5rem 0' }}>no articles matched</p>
+  )
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '220px', overflowY: 'auto', paddingRight: '0.2rem' }}>
+      {matchedArticles.map((a, i) => (
+        <motion.a
+          key={i} href={a.url} target="_blank" rel="noreferrer"
+          initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+          style={{ display: 'block', padding: '0.55rem 0.7rem', background: 'var(--c-surface-2)', borderRadius: '5px', border: '1px solid var(--c-border-2)', textDecoration: 'none', transition: 'border-color 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--c-accent-border)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-2)'}
+        >
+          <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: fg, lineHeight: 1.3, marginBottom: '0.2rem' }}>{a.title}</p>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <span style={{ ...mono, fontSize: '0.5rem', color: muted }}>{a.source?.name}</span>
+            <span style={{ ...mono, fontSize: '0.5rem', color: dim }}>{timeAgo(a.publishedAt)}</span>
+            <span style={{ ...mono, fontSize: '0.5rem', color: accent, marginLeft: 'auto' }}>↗ read</span>
+          </div>
+        </motion.a>
+      ))}
+    </div>
+  )
+}
+
+function TrendRadar({ trends, onEdit, articles }) {
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(trends.join(', '))
+  const [draft, setDraft]     = useState(trends.join(', '))
+  const [open, setOpen]       = useState(null)
 
   const handleSave = () => {
-    const parsed = draft.split(',').map(s => s.trim()).filter(Boolean)
-    onEdit(parsed)
+    onEdit(draft.split(',').map(s => s.trim()).filter(Boolean))
     setEditing(false)
   }
 
-  const bars = trends.map((t, i) => {
-    // deterministic pseudo-score based on string — stable across renders
-    const hash = t.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  const bars = trends.map(t => {
+    const hash  = t.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
     const score = 30 + (hash % 65)
     const delta = ((hash * 7) % 25) - 12
-    return { t, score, delta }
-  })
+    const matched = articles.filter(a =>
+      (a.title + ' ' + (a.description ?? '')).toLowerCase().includes(t.toLowerCase())
+    )
+    return { t, score, delta, matched }
+  }).sort((a, b) => b.score - a.score)
 
   return (
     <div>
@@ -254,39 +282,46 @@ function TrendRadar({ trends, onEdit }) {
       <AnimatePresence>
         {editing && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', marginBottom: '1rem' }}>
-            <textarea
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              rows={3}
-              style={{ width: '100%', ...mono, fontSize: '0.65rem', padding: '0.75rem', background: 'var(--c-input-bg)', border: border2, borderRadius: '4px', color: fg, resize: 'vertical', boxSizing: 'border-box' }}
-            />
-            <button onClick={handleSave} style={{ ...mono, fontSize: '0.6rem', marginTop: '0.4rem', padding: '0.35rem 1rem', background: 'var(--c-accent-soft)', border: '1px solid var(--c-accent-border)', color: accent, borderRadius: '4px', cursor: 'pointer' }}>
-              save
-            </button>
+            <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={3}
+              style={{ width: '100%', ...mono, fontSize: '0.65rem', padding: '0.75rem', background: 'var(--c-input-bg)', border: border2, borderRadius: '4px', color: fg, resize: 'vertical', boxSizing: 'border-box' }} />
+            <button onClick={handleSave} style={{ ...mono, fontSize: '0.6rem', marginTop: '0.4rem', padding: '0.35rem 1rem', background: 'var(--c-accent-soft)', border: '1px solid var(--c-accent-border)', color: accent, borderRadius: '4px', cursor: 'pointer' }}>save</button>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-        {bars.sort((a, b) => b.score - a.score).map(({ t, score, delta }, i) => (
-          <motion.div key={t} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-              <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: bodyText, textTransform: 'capitalize' }}>{t}</span>
-              <span style={{ ...mono, fontSize: '0.55rem', color: delta >= 0 ? up : accent }}>
-                {delta >= 0 ? '+' : ''}{delta}%
-              </span>
-              <span style={{ ...mono, fontSize: '0.55rem', color: muted, width: '2.5rem', textAlign: 'right' }}>{score}</span>
-            </div>
-            <div style={{ height: '3px', background: 'var(--c-surface-4)', borderRadius: '2px', overflow: 'hidden' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${score}%` }}
-                transition={{ delay: i * 0.04 + 0.1, duration: 0.6, ease: 'easeOut' }}
-                style={{ height: '100%', background: `linear-gradient(90deg, var(--c-accent), var(--c-purple))`, borderRadius: '2px' }}
-              />
-            </div>
-          </motion.div>
-        ))}
+        {bars.map(({ t, score, delta, matched }, i) => {
+          const isOpen = open === t
+          return (
+            <motion.div key={t} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
+              <button onClick={() => setOpen(isOpen ? null : t)} style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: '0.65rem', marginBottom: '0.25rem' }}>
+                  <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: bodyText, textTransform: 'capitalize' }}>{t}</span>
+                  {matched.length > 0 && <span style={{ ...mono, fontSize: '0.48rem', color: up, background: 'var(--c-up-subtle)', border: '1px solid var(--c-up-border)', padding: '0.08rem 0.35rem', borderRadius: '8px' }}>{matched.length}</span>}
+                  <span style={{ ...mono, fontSize: '0.55rem', color: delta >= 0 ? up : accent }}>{delta >= 0 ? '+' : ''}{delta}%</span>
+                  <span style={{ ...mono, fontSize: '0.5rem', color: dim, transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▾</span>
+                </div>
+                <div style={{ height: '3px', background: 'var(--c-surface-4)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <motion.div
+                    initial={{ width: 0 }} animate={{ width: `${score}%` }}
+                    transition={{ delay: i * 0.04 + 0.1, duration: 0.6, ease: 'easeOut' }}
+                    style={{ height: '100%', background: 'linear-gradient(90deg, var(--c-accent), var(--c-purple))', borderRadius: '2px' }}
+                  />
+                </div>
+              </button>
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden', marginTop: '0.5rem' }}>
+                    <div style={{ padding: '0.65rem', background: 'var(--c-input-bg)', borderRadius: '6px', border: '1px solid var(--c-border-2)' }}>
+                      <p style={{ ...mono, fontSize: '0.5rem', color: muted, letterSpacing: '0.12em', marginBottom: '0.5rem' }}>SOURCES ({matched.length})</p>
+                      <SourceDrawer matchedArticles={matched} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )
+        })}
       </div>
     </div>
   )
@@ -295,33 +330,50 @@ function TrendRadar({ trends, onEdit }) {
 // ── House Tracker ────────────────────────────────────────────────
 
 function HouseTracker({ houses, articles }) {
+  const [open, setOpen] = useState(null)
+
   const houseMentions = houses.map(h => {
-    const count = articles.filter(a =>
+    const matched = articles.filter(a =>
       (a.title + ' ' + (a.description ?? '')).toLowerCase().includes(h.toLowerCase().split(' ')[0].toLowerCase())
-    ).length
-    return { h, count }
+    )
+    return { h, matched, count: matched.length }
   }).sort((a, b) => b.count - a.count)
 
   const max = Math.max(...houseMentions.map(x => x.count), 1)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {houseMentions.map(({ h, count }, i) => (
-        <motion.div key={h} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.75rem', marginBottom: '0.2rem' }}>
-            <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.72rem', color: count > 0 ? bodyText : muted }}>{h}</span>
-            <span style={{ ...mono, fontSize: '0.55rem', color: muted, width: '2rem', textAlign: 'right' }}>{count}</span>
-          </div>
-          <div style={{ height: '2px', background: 'var(--c-surface-4)', borderRadius: '1px', overflow: 'hidden' }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: count > 0 ? `${(count / max) * 100}%` : '0%' }}
-              transition={{ delay: i * 0.03 + 0.1, duration: 0.5 }}
-              style={{ height: '100%', background: count > 0 ? 'var(--c-accent)' : 'transparent', borderRadius: '1px' }}
-            />
-          </div>
-        </motion.div>
-      ))}
+      {houseMentions.map(({ h, matched, count }, i) => {
+        const isOpen = open === h
+        return (
+          <motion.div key={h} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
+            <button onClick={() => count > 0 && setOpen(isOpen ? null : h)} style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: count > 0 ? 'pointer' : 'default', textAlign: 'left' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: '0.65rem', marginBottom: '0.2rem' }}>
+                <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.72rem', color: count > 0 ? bodyText : muted }}>{h}</span>
+                <span style={{ ...mono, fontSize: '0.55rem', color: muted }}>{count}</span>
+                {count > 0 && <span style={{ ...mono, fontSize: '0.5rem', color: dim, transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▾</span>}
+              </div>
+              <div style={{ height: '2px', background: 'var(--c-surface-4)', borderRadius: '1px', overflow: 'hidden' }}>
+                <motion.div
+                  initial={{ width: 0 }} animate={{ width: count > 0 ? `${(count / max) * 100}%` : '0%' }}
+                  transition={{ delay: i * 0.03 + 0.1, duration: 0.5 }}
+                  style={{ height: '100%', background: count > 0 ? 'var(--c-accent)' : 'transparent', borderRadius: '1px' }}
+                />
+              </div>
+            </button>
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden', marginTop: '0.4rem' }}>
+                  <div style={{ padding: '0.65rem', background: 'var(--c-input-bg)', borderRadius: '6px', border: '1px solid var(--c-border-2)' }}>
+                    <p style={{ ...mono, fontSize: '0.5rem', color: muted, letterSpacing: '0.12em', marginBottom: '0.5rem' }}>SOURCES ({count})</p>
+                    <SourceDrawer matchedArticles={matched} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )
+      })}
       {articles.length === 0 && (
         <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>add NewsAPI key to see house coverage</p>
       )}
@@ -532,7 +584,7 @@ export default function RitualwearDashboard() {
 
             {/* Trend radar */}
             <Panel title="Trend Radar" sub="aesthetic search velocity">
-              <TrendRadar trends={trends} onEdit={saveTrends} />
+              <TrendRadar trends={trends} onEdit={saveTrends} articles={articles} />
             </Panel>
 
             {/* House tracker */}

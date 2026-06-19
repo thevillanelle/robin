@@ -484,6 +484,229 @@ function CalendarPanel({ icsUrl, onSetUrl }) {
   )
 }
 
+// ── FIRE overview widget ─────────────────────────────────────────
+
+const DEFAULT_FIRE = {
+  assets:        150000,
+  studentLoans:  30000,
+  creditCards:   20000,
+  otherDebts:    0,
+  currentSalary: 0,
+  incomeTarget:  20000,   // amount OVER salary desired
+  fireNumber:    2500000,
+  annualReturn:  7,       // % assumed growth rate
+  annualSavings: 0,       // how much saved per year
+}
+
+function fmtDollar(n) {
+  if (n == null || n === '') return '—'
+  const abs = Math.abs(Number(n))
+  if (abs >= 1_000_000) return `$${(abs / 1_000_000).toFixed(2)}M`
+  if (abs >= 1_000)     return `$${(abs / 1_000).toFixed(1)}k`
+  return `$${abs.toLocaleString()}`
+}
+
+function yearsToFire(netWorth, fireNumber, annualSavings, annualReturn) {
+  if (!annualSavings || annualSavings <= 0) return null
+  const r = annualReturn / 100
+  if (netWorth >= fireNumber) return 0
+  // FV = PV*(1+r)^n + PMT*((1+r)^n - 1)/r
+  // solve for n numerically
+  let n = 0
+  let fv = netWorth
+  while (fv < fireNumber && n < 100) {
+    fv = fv * (1 + r) + annualSavings
+    n++
+  }
+  return n < 100 ? n : null
+}
+
+function ProgressBar({ pct, color = accent }) {
+  const capped = Math.min(pct, 100)
+  return (
+    <div style={{ height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: `${capped}%`,
+        background: pct >= 100 ? '#6AAD8A' : `linear-gradient(90deg, ${color}, #A89BC4)`,
+        borderRadius: '3px',
+        transition: 'width 0.6s ease',
+        boxShadow: `0 0 8px ${color}55`,
+      }} />
+    </div>
+  )
+}
+
+function FireWidget() {
+  const [data, setData]     = useState(() => LS.get('robin_fire', DEFAULT_FIRE))
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft]   = useState(data)
+
+  const save = () => { LS.set('robin_fire', draft); setData(draft); setEditing(false) }
+  const set  = (k, v) => setDraft(d => ({ ...d, [k]: v === '' ? '' : Number(v) }))
+
+  const totalDebts = (data.studentLoans || 0) + (data.creditCards || 0) + (data.otherDebts || 0)
+  const netWorth   = (data.assets || 0) - totalDebts
+  const firePct    = data.fireNumber ? (netWorth / data.fireNumber) * 100 : 0
+  const incomeNeeded = (data.currentSalary || 0) + (data.incomeTarget || 0)
+  const incomeGap    = incomeNeeded - (data.currentSalary || 0)
+  const yearsEst   = yearsToFire(netWorth, data.fireNumber, data.annualSavings, data.annualReturn)
+
+  const Field = ({ label, k, prefix = '$' }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+      <label style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: muted }}>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        <span style={{ ...mono, fontSize: '0.7rem', color: dim }}>{prefix}</span>
+        <input
+          type="number"
+          value={draft[k] ?? ''}
+          onChange={e => set(k, e.target.value)}
+          style={{
+            flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px', padding: '0.45rem 0.6rem',
+            ...mono, fontSize: '0.7rem', color: fg, outline: 'none', width: '100%',
+          }}
+        />
+      </div>
+    </div>
+  )
+
+  if (editing) return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+        <Field label="Total assets"       k="assets" />
+        <Field label="Student loans"      k="studentLoans" />
+        <Field label="Credit cards"       k="creditCards" />
+        <Field label="Other debts"        k="otherDebts" />
+        <Field label="Current salary"     k="currentSalary" />
+        <Field label="Income target above salary" k="incomeTarget" />
+        <Field label="FIRE number"        k="fireNumber" />
+        <Field label="Annual savings"     k="annualSavings" />
+        <Field label="Assumed return %"   k="annualReturn" prefix="%" />
+      </div>
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <button onClick={save}
+          style={{ ...mono, fontSize: '0.65rem', color: fg, background: 'rgba(196,113,122,0.15)', border: `1px solid ${accent}`, padding: '0.55rem 1.25rem', borderRadius: '4px', cursor: 'pointer' }}>
+          save
+        </button>
+        <button onClick={() => { setDraft(data); setEditing(false) }}
+          style={{ ...mono, fontSize: '0.65rem', color: muted, background: 'none', border: '1px solid rgba(255,255,255,0.1)', padding: '0.55rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+          cancel
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      {/* top edit button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
+        <button onClick={() => { setDraft(data); setEditing(true) }}
+          style={{ ...mono, fontSize: '0.55rem', color: dim, background: 'none', border: 'none', cursor: 'pointer' }}>
+          edit ↗
+        </button>
+      </div>
+
+      {/* FIRE progress — hero element */}
+      <div style={{ marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.6rem' }}>
+          <span style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.12em', color: muted, textTransform: 'uppercase' }}>progress to FIRE</span>
+          <span style={{ ...mono, fontSize: '0.85rem', color: firePct >= 100 ? '#6AAD8A' : fg }}>{firePct.toFixed(2)}%</span>
+        </div>
+        <ProgressBar pct={firePct} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
+          <span style={{ ...mono, fontSize: '0.55rem', color: dim }}>{fmtDollar(netWorth)} net worth</span>
+          <span style={{ ...mono, fontSize: '0.55rem', color: dim }}>{fmtDollar(data.fireNumber)} target</span>
+        </div>
+      </div>
+
+      {/* stat grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
+
+        {/* assets */}
+        <div style={{ padding: '1rem', background: 'rgba(106,173,138,0.06)', border: '1px solid rgba(106,173,138,0.15)', borderRadius: '0.75rem' }}>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6AAD8A', marginBottom: '0.35rem' }}>assets</p>
+          <p style={{ ...serif, fontSize: '1.5rem', color: fg, lineHeight: 1 }}>{fmtDollar(data.assets)}</p>
+        </div>
+
+        {/* net worth */}
+        <div style={{ padding: '1rem', background: netWorth >= 0 ? 'rgba(106,173,138,0.06)' : 'rgba(196,113,122,0.06)', border: `1px solid ${netWorth >= 0 ? 'rgba(106,173,138,0.15)' : 'rgba(196,113,122,0.15)'}`, borderRadius: '0.75rem' }}>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: netWorth >= 0 ? '#6AAD8A' : accent, marginBottom: '0.35rem' }}>net worth</p>
+          <p style={{ ...serif, fontSize: '1.5rem', color: fg, lineHeight: 1 }}>{fmtDollar(netWorth)}</p>
+        </div>
+
+        {/* still needed */}
+        <div style={{ padding: '1rem', background: panelBg, border: panelBorder, borderRadius: '0.75rem' }}>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: muted, marginBottom: '0.35rem' }}>still needed</p>
+          <p style={{ ...serif, fontSize: '1.5rem', color: fg, lineHeight: 1 }}>{fmtDollar(Math.max(0, (data.fireNumber || 0) - netWorth))}</p>
+        </div>
+
+        {/* years to FIRE */}
+        <div style={{ padding: '1rem', background: panelBg, border: panelBorder, borderRadius: '0.75rem' }}>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: muted, marginBottom: '0.35rem' }}>est. years to FIRE</p>
+          <p style={{ ...serif, fontSize: '1.5rem', color: fg, lineHeight: 1 }}>
+            {yearsEst != null ? yearsEst : '—'}
+          </p>
+          {!data.annualSavings && <p style={{ ...mono, fontSize: '0.55rem', color: dim, marginTop: '0.3rem' }}>add annual savings to calculate</p>}
+        </div>
+
+      </div>
+
+      {/* debt + income breakdown */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+        {/* debt breakdown */}
+        <div>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: muted, marginBottom: '0.75rem' }}>debt breakdown</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {[
+              { label: 'student loans', value: data.studentLoans },
+              { label: 'credit cards',  value: data.creditCards },
+              { label: 'other',         value: data.otherDebts },
+            ].filter(d => d.value).map(d => {
+              const pct = totalDebts ? (d.value / totalDebts) * 100 : 0
+              return (
+                <div key={d.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <span style={{ ...mono, fontSize: '0.6rem', color: muted }}>{d.label}</span>
+                    <span style={{ ...mono, fontSize: '0.6rem', color: accent }}>{fmtDollar(d.value)}</span>
+                  </div>
+                  <ProgressBar pct={pct} color={accent} />
+                </div>
+              )
+            })}
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ ...mono, fontSize: '0.6rem', color: fg }}>total</span>
+              <span style={{ ...mono, fontSize: '0.65rem', color: accent }}>{fmtDollar(totalDebts)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* income tracker */}
+        <div>
+          <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: muted, marginBottom: '0.75rem' }}>income target</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ ...mono, fontSize: '0.6rem', color: muted }}>current salary</span>
+              <span style={{ ...mono, fontSize: '0.6rem', color: fg }}>{data.currentSalary ? fmtDollar(data.currentSalary) : '—'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ ...mono, fontSize: '0.6rem', color: muted }}>target above salary</span>
+              <span style={{ ...mono, fontSize: '0.65rem', color: '#6AAD8A' }}>+{fmtDollar(data.incomeTarget)}</span>
+            </div>
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ ...mono, fontSize: '0.6rem', color: fg }}>income needed</span>
+              <span style={{ ...serif, fontSize: '1.1rem', color: '#6AAD8A', lineHeight: 1 }}>{data.currentSalary ? fmtDollar(incomeNeeded) : `+${fmtDollar(incomeGap)} over salary`}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
 // ── Ritualwealth user stats ───────────────────────────────────────
 
 function SuiteStats() {
@@ -731,6 +954,11 @@ export default function WealthDashboard() {
             <CalendarPanel icsUrl={icsUrl} onSetUrl={saveIcsUrl} />
           </Panel>
         </div>
+
+        {/* FIRE overview */}
+        <Panel title="financial overview // fire" style={{ marginBottom: '1rem' }}>
+          <FireWidget />
+        </Panel>
 
         {/* Ritualwealth suite stats */}
         <Panel title="ritualwealth // suite data" style={{ marginBottom: '1rem' }}>

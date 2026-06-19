@@ -9,6 +9,7 @@ import ThemeDropdown from '../components/ThemeDropdown'
 const DEFAULT_WATCHLIST = ['SPY', 'PANW', 'SCHO', 'TLRY', 'RKLB', 'NOC', 'IRDM', 'CACI', 'RTX', 'GLD', 'DRS', 'TDG', 'KBR', 'AVAV', 'LDOS', 'VVX', 'OSK', 'NEM', 'MP']
 const DEFAULT_CITIES = [
   { label: 'New York',     tz: 'America/New_York' },
+  { label: 'Miami',        tz: 'America/New_York' },
   { label: 'Los Angeles',  tz: 'America/Los_Angeles' },
   { label: 'Chicago',      tz: 'America/Chicago' },
   { label: 'Nice',         tz: 'Europe/Paris' },
@@ -61,15 +62,6 @@ async function fetchNews(ticker, key) {
   } catch { return [] }
 }
 
-async function fetchInsider(ticker, key) {
-  try {
-    const r = await fetch(`https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${key}`)
-    if (!r.ok) return []
-    const d = await r.json()
-    return (d.data ?? []).slice(0, 12)
-  } catch { return [] }
-}
-
 async function fetchCandles(ticker, key) {
   try {
     const to   = Math.floor(Date.now() / 1000)
@@ -82,16 +74,15 @@ async function fetchCandles(ticker, key) {
   } catch { return null }
 }
 
-async function fetchSEC(ticker) {
+async function fetchCityNews(city, newsKey) {
   try {
-    const from = new Date(Date.now() - 90 * 864e5).toISOString().slice(0,10)
-    const r = await fetch(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=8-K,SC%2013G,SC%2013D,4&dateRange=custom&startdt=${from}&_source=file_date,period_of_report,entity_name,file_num,period_of_report,form_type,file_date`)
+    const q = encodeURIComponent(`"${city}" real estate property market`)
+    const r = await fetch(`https://newsapi.org/v2/everything?q=${q}&language=en&pageSize=6&sortBy=publishedAt&apiKey=${newsKey}`)
     if (!r.ok) return []
     const d = await r.json()
-    return (d.hits?.hits ?? []).slice(0, 10).map(h => h._source)
+    return d.articles ?? []
   } catch { return [] }
 }
-
 
 // ── API key gate ─────────────────────────────────────────────────
 
@@ -224,17 +215,20 @@ function Watchlist({ watchlist, quotes, selected, onSelect, onAdd, onRemove }) {
   )
 }
 
-// ── World clock ──────────────────────────────────────────────────
+// ── City markets (clock + property news) ─────────────────────────
 
-function WorldClock({ cities, onEdit }) {
-  const [times, setTimes] = useState({})
+function CityMarkets({ cities, onEdit, newsKey }) {
+  const [times, setTimes]           = useState({})
+  const [selectedCity, setSelectedCity] = useState(cities[0]?.label ?? null)
+  const [cityNews, setCityNews]     = useState({})
+  const [loadingCity, setLoadingCity] = useState(null)
 
   useEffect(() => {
     const tick = () => {
       const now = new Date()
       const result = {}
       cities.forEach(city => {
-        result[city.tz] = now.toLocaleTimeString('en-US', { timeZone: city.tz, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        result[city.label] = now.toLocaleTimeString('en-US', { timeZone: city.tz, hour: '2-digit', minute: '2-digit', second: '2-digit' })
       })
       setTimes(result)
     }
@@ -243,17 +237,78 @@ function WorldClock({ cities, onEdit }) {
     return () => clearInterval(id)
   }, [cities])
 
+  const loadCityNews = useCallback(async (city) => {
+    if (!newsKey || cityNews[city]) return
+    setLoadingCity(city)
+    const articles = await fetchCityNews(city, newsKey)
+    setCityNews(prev => ({ ...prev, [city]: articles }))
+    setLoadingCity(null)
+  }, [newsKey, cityNews])
+
+  useEffect(() => {
+    if (selectedCity) loadCityNews(selectedCity)
+  }, [selectedCity])
+
+  const articles = cityNews[selectedCity] ?? []
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {cities.map(city => (
-        <div key={city.tz} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0.5rem 0', borderBottom: '1px solid var(--c-surface-2)' }}>
-          <span style={{ ...mono, fontSize: '0.6rem', color: muted, letterSpacing: '0.1em' }}>{city.label.toUpperCase()}</span>
-          <span style={{ ...mono, fontSize: '0.75rem', color: fg }}>{times[city.tz] ?? '—'}</span>
-        </div>
-      ))}
-      <button onClick={onEdit} style={{ ...mono, fontSize: '0.55rem', color: dim, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', marginTop: '0.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+      {cities.map(city => {
+        const active = city.label === selectedCity
+        return (
+          <button
+            key={city.label}
+            onClick={() => setSelectedCity(city.label)}
+            style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              padding: '0.55rem 0.6rem', margin: '0 -0.6rem',
+              background: active ? 'var(--c-surface-2)' : 'transparent',
+              border: 'none', borderRadius: '6px',
+              cursor: 'pointer', textAlign: 'left', width: 'calc(100% + 1.2rem)',
+              transition: 'background 0.15s',
+            }}
+          >
+            <span style={{ ...mono, fontSize: '0.6rem', color: active ? accent : muted, letterSpacing: '0.1em' }}>{city.label.toUpperCase()}</span>
+            <span style={{ ...mono, fontSize: '0.75rem', color: active ? fg : muted }}>{times[city.label] ?? '—'}</span>
+          </button>
+        )
+      })}
+
+      <button onClick={onEdit} style={{ ...mono, fontSize: '0.52rem', color: dim, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', marginTop: '0.5rem', marginBottom: '1rem' }}>
         edit cities ↗
       </button>
+
+      {/* Property news for selected city */}
+      {selectedCity && (
+        <div>
+          <p style={{ ...mono, fontSize: '0.52rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: accent, marginBottom: '0.6rem' }}>
+            {selectedCity} // property
+          </p>
+          {!newsKey ? (
+            <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>add NewsAPI key to load market news</p>
+          ) : loadingCity === selectedCity ? (
+            <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
+          ) : articles.length === 0 ? (
+            <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>no recent news</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '320px', overflowY: 'auto' }}>
+              {articles.map((a, i) => (
+                <a key={i} href={a.url} target="_blank" rel="noreferrer"
+                  style={{ display: 'block', padding: '0.55rem 0.65rem', background: 'var(--c-surface-2)', borderRadius: '6px', border: '1px solid var(--c-border-1)', textDecoration: 'none', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--c-accent-border)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-1)'}
+                >
+                  <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.72rem', color: fg, lineHeight: 1.35, marginBottom: '0.2rem' }}>{a.title}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ ...mono, fontSize: '0.48rem', color: muted }}>{a.source?.name}</span>
+                    <span style={{ ...mono, fontSize: '0.48rem', color: accent, marginLeft: 'auto' }}>↗</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -373,70 +428,6 @@ function NewsFeed({ items }) {
           </div>
         </a>
       ))}
-    </div>
-  )
-}
-
-// ── Insider transactions ─────────────────────────────────────────
-
-function InsiderPanel({ items, ticker }) {
-  if (!items.length) return <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>no data</p>
-  const secSearch = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${ticker}&type=4&dateb=&owner=include&count=20`
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '260px', overflowY: 'auto' }}>
-      {items.map((t, i) => {
-        const isBuy = (t.transactionType ?? t.change ?? 0) > 0
-        return (
-          <a key={i} href={t.filingUrl ?? secSearch} target="_blank" rel="noreferrer"
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.65rem', background: 'var(--c-surface-2)', borderRadius: '5px', border: '1px solid var(--c-border-1)', textDecoration: 'none', transition: 'border-color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = isBuy ? 'var(--c-up-border)' : 'var(--c-accent-border)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-1)'}
-          >
-            <div>
-              <p style={{ ...mono, fontSize: '0.6rem', color: isBuy ? 'var(--c-up)' : accent }}>
-                {isBuy ? 'BUY' : 'SELL'} · {t.name ?? t.filingPerson ?? '—'}
-              </p>
-              <p style={{ ...mono, fontSize: '0.52rem', color: muted }}>{t.transactionDate ?? t.filingDate ?? '—'}</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ ...mono, fontSize: '0.65rem', color: isBuy ? 'var(--c-up)' : accent }}>
-                {t.change != null ? `${t.change > 0 ? '+' : ''}${Number(t.change).toLocaleString()}` : '—'}
-              </p>
-              <p style={{ ...mono, fontSize: '0.48rem', color: dim }}>↗ SEC</p>
-            </div>
-          </a>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── SEC filings ──────────────────────────────────────────────────
-
-function SECPanel({ items, ticker }) {
-  if (!items.length) return <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>no recent filings</p>
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '260px', overflowY: 'auto' }}>
-      {items.map((f, i) => {
-        const href = f.file_url
-          ?? `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(f.entity_name ?? ticker)}%22&dateRange=custom&startdt=${f.file_date}&enddt=${f.file_date}&forms=${f.form_type}`
-        return (
-          <a key={i} href={href} target="_blank" rel="noreferrer"
-            style={{ display: 'block', padding: '0.5rem 0.65rem', background: 'var(--c-surface-2)', borderRadius: '5px', border: '1px solid var(--c-border-1)', textDecoration: 'none', transition: 'border-color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--c-accent-border)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border-1)'}
-          >
-            <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'baseline', marginBottom: '0.15rem' }}>
-              <span style={{ ...mono, fontSize: '0.6rem', color: accent }}>{f.form_type}</span>
-              <span style={{ ...mono, fontSize: '0.52rem', color: dim }}>{f.file_date}</span>
-              <span style={{ ...mono, fontSize: '0.48rem', color: accent, marginLeft: 'auto' }}>↗ EDGAR</span>
-            </div>
-            <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: 'var(--c-body-text)', lineHeight: 1.3 }}>
-              {f.entity_name}
-            </p>
-          </a>
-        )
-      })}
     </div>
   )
 }
@@ -910,13 +901,12 @@ function Panel({ title, children, style }) {
 
 export default function WealthDashboard() {
   const [apiKey, setApiKey]         = useState(() => LS.get('robin_finnhub_key', null))
+  const [newsKey]                   = useState(() => LS.get('ritualwear_news_key', null))
   const [watchlist, setWatchlist]   = useState(() => LS.get('robin_watchlist', DEFAULT_WATCHLIST))
   const [cities, setCities]         = useState(() => LS.get('robin_clock_cities', DEFAULT_CITIES))
   const [selected, setSelected]     = useState(watchlist[0])
   const [quotes, setQuotes]         = useState({})
   const [news, setNews]             = useState([])
-  const [insider, setInsider]       = useState([])
-  const [secFiles, setSecFiles]     = useState([])
   const [candles, setCandles]       = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [editingCities, setEditingCities] = useState(false)
@@ -958,14 +948,12 @@ export default function WealthDashboard() {
   useEffect(() => {
     if (!selected || !apiKey) return
     setLoadingDetail(true)
-    setNews([]); setInsider([]); setSecFiles([]); setCandles(null)
+    setNews([]); setCandles(null)
     Promise.all([
       fetchNews(selected, apiKey),
-      fetchInsider(selected, apiKey),
-      fetchSEC(selected),
       fetchCandles(selected, apiKey),
-    ]).then(([n, ins, sec, cdl]) => {
-      setNews(n); setInsider(ins); setSecFiles(sec); setCandles(cdl)
+    ]).then(([n, cdl]) => {
+      setNews(n); setCandles(cdl)
       setLoadingDetail(false)
     })
   }, [selected, apiKey])
@@ -1002,48 +990,35 @@ export default function WealthDashboard() {
         {quoteList.length > 0 && <TickerBar quotes={quoteList} selected={selected} onSelect={t => setSelected(prev => prev === t ? null : t)} />}
 
         {/* Main 2-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: '1rem', marginBottom: '1rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1rem', marginBottom: '1rem', alignItems: 'start' }}>
 
           {/* Center: stock detail */}
-          <Panel title={selected ? `${selected} // analysis` : 'click any ticker above'}>
-            {selected
-              ? <StockDetail ticker={selected} quote={quotes[selected]} candles={candles} />
-              : <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>click a ticker in the bar to pull up its chart, filings, and insider moves</p>
-            }
-          </Panel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <Panel title={selected ? `${selected} // analysis` : 'click any ticker above'}>
+              {selected
+                ? <StockDetail ticker={selected} quote={quotes[selected]} candles={candles} />
+                : <p style={{ ...mono, fontSize: '0.65rem', color: dim }}>click a ticker in the bar to pull up its chart</p>
+              }
+            </Panel>
 
-          {/* Right: world clock */}
-          <Panel title="world clock">
-            <WorldClock cities={cities} onEdit={() => setEditingCities(true)} />
+            {selected && (
+              <Panel title={`news // ${selected}`}>
+                {loadingDetail
+                  ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
+                  : <NewsFeed items={news} />}
+              </Panel>
+            )}
+          </div>
+
+          {/* Right: city markets */}
+          <Panel title="markets // cities">
+            <CityMarkets cities={cities} onEdit={() => setEditingCities(true)} newsKey={newsKey} />
           </Panel>
 
         </div>
 
-        {/* Culture & fraud analysis row */}
-        {selected && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <Panel title={`sec filings // ${selected}`}>
-              {loadingDetail
-                ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
-                : <SECPanel items={secFiles} ticker={selected} />}
-            </Panel>
-            <Panel title={`insider moves // ${selected}`}>
-              {loadingDetail
-                ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
-                : <InsiderPanel items={insider} ticker={selected} />}
-            </Panel>
-          </div>
-        )}
-
-        {/* News + Calendar row */}
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1.4fr' : '1fr', gap: '1rem', marginBottom: '1rem' }}>
-          {selected && (
-            <Panel title={`news // ${selected}`}>
-              {loadingDetail
-                ? <p style={{ ...mono, fontSize: '0.6rem', color: dim }}>loading…</p>
-                : <NewsFeed items={news} />}
-            </Panel>
-          )}
+        {/* Itinerary */}
+        <div style={{ marginBottom: '1rem' }}>
           <Panel title="itinerary // today">
             <ItineraryWidget />
           </Panel>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { supabase } from '../lib/supabase'
+import ThemeDropdown from '../components/ThemeDropdown'
 
 const ADMIN_EMAIL = 'ADMIN_EMAIL_REDACTED'
 const MIN_COHORT  = 50
@@ -36,11 +37,11 @@ async function checkService(svc) {
 
 function GlowDot({ status }) {
   const cfg = {
-    up:       { color: '#6AAD8A', shadow: '0 0 5px 2px rgba(106,173,138,0.7), 0 0 14px 5px rgba(106,173,138,0.25)' },
-    degraded: { color: '#C4A85A', shadow: '0 0 5px 2px rgba(196,168,90,0.7),  0 0 14px 5px rgba(196,168,90,0.25)' },
-    down:     { color: '#C4717A', shadow: '0 0 5px 2px rgba(196,113,122,0.7), 0 0 14px 5px rgba(196,113,122,0.25)' },
-    loading:  { color: '#2a2018', shadow: 'none' },
-  }[status] ?? { color: '#2a2018', shadow: 'none' }
+    up:       { color: 'var(--c-up)', shadow: '0 0 5px 2px rgba(106,173,138,0.7), 0 0 14px 5px rgba(106,173,138,0.25)' },
+    degraded: { color: 'var(--c-amber)', shadow: '0 0 5px 2px rgba(196,168,90,0.7),  0 0 14px 5px rgba(196,168,90,0.25)' },
+    down:     { color: 'var(--c-accent)', shadow: '0 0 5px 2px rgba(196,113,122,0.7), 0 0 14px 5px var(--c-accent-border)' },
+    loading:  { color: 'var(--c-surface-4)', shadow: 'none' },
+  }[status] ?? { color: 'var(--c-surface-4)', shadow: 'none' }
 
   return (
     <div style={{
@@ -56,34 +57,34 @@ function GlowDot({ status }) {
 
 function ServiceTile({ svc, i, clickable }) {
   const statusLabel = { up: 'operational', down: 'down', degraded: 'degraded', loading: 'checking…' }[svc.status] ?? 'checking…'
-  const statusColor = { up: '#6AAD8A', down: '#C4717A', degraded: '#C4A85A', loading: '#2a2018' }[svc.status] ?? '#2a2018'
+  const statusColor = { up: 'var(--c-up)', down: 'var(--c-accent)', degraded: 'var(--c-amber)', loading: 'var(--c-surface-4)' }[svc.status] ?? 'var(--c-surface-4)'
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
       style={{
         padding: '1.25rem 1.5rem',
-        background: 'rgba(255,255,255,0.025)',
+        background: 'var(--c-surface-1)',
         borderRadius: '0.75rem',
-        border: `1px solid ${svc.status === 'down' ? 'rgba(196,113,122,0.25)' : 'rgba(255,255,255,0.06)'}`,
+        border: `1px solid ${svc.status === 'down' ? 'var(--c-accent-border)' : 'var(--c-border-1)'}`,
         display: 'flex', flexDirection: 'column', gap: '0.6rem',
         cursor: clickable ? 'pointer' : 'default',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#5a5048' }}>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-muted)' }}>
           {svc.sub}
         </p>
         <GlowDot status={svc.status} />
       </div>
-      <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.1rem', color: '#FAF7F2', lineHeight: 1 }}>
-        {svc.name}{clickable && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#5a5048', marginLeft: '0.4rem' }}>↗</span>}
+      <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.1rem', color: 'var(--c-fg)', lineHeight: 1 }}>
+        {svc.name}{clickable && <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted)', marginLeft: '0.4rem' }}>↗</span>}
       </p>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
         <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: statusColor, letterSpacing: '0.1em' }}>
           {statusLabel}
         </p>
         {svc.ms != null && (
-          <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#3a3028' }}>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)' }}>
             {svc.ms}ms
           </p>
         )}
@@ -118,7 +119,7 @@ function Ticker({ services, totalUsers, newToday }) {
             fontFamily: 'monospace',
             fontSize: '0.6rem',
             letterSpacing: '0.12em',
-            color: item.startsWith('⚠') ? '#C4717A' : '#4a4038',
+            color: item.startsWith('⚠') ? 'var(--c-accent)' : '#4a4038',
           }}>
             {item}
           </span>
@@ -143,12 +144,12 @@ function ErrorLog({ entries }) {
       style={{
         marginTop: '0.75rem',
         padding: '1.25rem 1.5rem',
-        background: 'rgba(0,0,0,0.35)',
+        background: 'var(--c-input-bg)',
         borderRadius: '0.75rem',
         border: '1px solid rgba(255,255,255,0.05)',
       }}
     >
-      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C4717A', marginBottom: '0.85rem' }}>
+      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '0.85rem' }}>
         event log
       </p>
       <div
@@ -156,13 +157,13 @@ function ErrorLog({ entries }) {
         style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}
       >
         {entries.length === 0 ? (
-          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: '#2a2018' }}>no events yet</p>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: 'var(--c-surface-4)' }}>no events yet</p>
         ) : entries.map((e, i) => (
           <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'baseline' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#3a3028', flexShrink: 0 }}>{e.ts}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)', flexShrink: 0 }}>{e.ts}</span>
             <span style={{
               fontFamily: 'monospace', fontSize: '0.6rem',
-              color: e.type === 'error' ? '#C4717A' : e.type === 'recovery' ? '#6AAD8A' : '#5a5048',
+              color: e.type === 'error' ? 'var(--c-accent)' : e.type === 'recovery' ? 'var(--c-up)' : 'var(--c-muted)',
             }}>
               {e.message}
             </span>
@@ -185,38 +186,38 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
       style={{
         marginBottom: '0',
         padding: '2rem',
-        background: 'rgba(255,255,255,0.02)',
+        background: 'var(--c-surface-1)',
         borderRadius: '1rem',
-        border: anyDown ? '1px solid rgba(196,113,122,0.3)' : '1px solid rgba(255,255,255,0.06)',
+        border: anyDown ? '1px solid var(--c-accent-border)' : '1px solid var(--c-border-1)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C4717A', marginBottom: '0.4rem' }}>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '0.4rem' }}>
             system status // live
           </p>
-          <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.4rem', fontWeight: 400, color: '#FAF7F2', fontStyle: 'italic' }}>
+          <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '1.4rem', fontWeight: 400, color: 'var(--c-fg)', fontStyle: 'italic' }}>
             {refreshing ? 'checking…' : allUp ? 'All systems operational.' : anyDown ? 'Degraded. See below.' : 'Initializing…'}
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
           {clock && (
-            <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#FAF7F2', letterSpacing: '0.08em' }}>{clock}</p>
+            <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: 'var(--c-fg)', letterSpacing: '0.08em' }}>{clock}</p>
           )}
           <button
             onClick={onRefresh}
             disabled={refreshing}
             style={{
               fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em',
-              color: refreshing ? '#3a3028' : '#8B7E72',
-              background: 'none', border: '1px solid rgba(255,255,255,0.1)',
+              color: refreshing ? 'var(--c-dim)' : 'var(--c-muted2)',
+              background: 'none', border: '1px solid var(--c-border-3)',
               padding: '0.4rem 1rem', borderRadius: '4px', cursor: refreshing ? 'default' : 'pointer',
             }}
           >
             {refreshing ? '…' : 'refresh'}
           </button>
           {checkedAt && (
-            <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#3a3028' }}>
+            <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-dim)' }}>
               last checked {checkedAt}
             </p>
           )}
@@ -240,17 +241,17 @@ function SystemPanel({ services, checkedAt, onRefresh, refreshing, errorLog, clo
 
 function Stat({ label, value, sub }) {
   return (
-    <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.04)', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8B7E72', marginBottom: '0.5rem' }}>{label}</p>
-      <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '2rem', color: '#FAF7F2', lineHeight: 1 }}>{value ?? '—'}</p>
-      {sub && <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#8B7E72', marginTop: '0.4rem' }}>{sub}</p>}
+    <div style={{ padding: '1.5rem', background: 'var(--c-surface-3)', borderRadius: '0.75rem', border: '1px solid var(--c-border-3)' }}>
+      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-muted2)', marginBottom: '0.5rem' }}>{label}</p>
+      <p style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '2rem', color: 'var(--c-fg)', lineHeight: 1 }}>{value ?? '—'}</p>
+      {sub && <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: 'var(--c-muted2)', marginTop: '0.4rem' }}>{sub}</p>}
     </div>
   )
 }
 
 function SmallCohort() {
   return (
-    <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#3a3028', fontStyle: 'italic' }}>
+    <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>
       cohort &lt; {MIN_COHORT} — suppressed
     </p>
   )
@@ -263,13 +264,13 @@ function BarChart({ data }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
       {data.map((d, i) => (
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 40px', gap: '0.75rem', alignItems: 'center' }}>
-          <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: '#C8BFB0', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+          <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.75rem', color: 'var(--c-body-text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
             {fmt(d.value ?? d.archetype ?? d.tier)}
           </span>
-          <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+          <div style={{ height: '4px', background: 'var(--c-border-1)', borderRadius: '2px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(d.n / max) * 100}%`, background: 'linear-gradient(90deg, #C4717A, #A89BC4)', borderRadius: '2px' }} />
           </div>
-          <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#8B7E72', textAlign: 'right' }}>{d.n}</span>
+          <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: 'var(--c-muted2)', textAlign: 'right' }}>{d.n}</span>
         </div>
       ))}
     </div>
@@ -302,8 +303,8 @@ function GrowthChart({ data }) {
         })}
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-        <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#5a5048' }}>{data[0]?.week}</span>
-        <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#5a5048' }}>{data[data.length - 1]?.week}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted)' }}>{data[0]?.week}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: 'var(--c-muted)' }}>{data[data.length - 1]?.week}</span>
       </div>
     </div>
   )
@@ -316,12 +317,12 @@ function Panel({ title, children, span = 1 }) {
       style={{
         gridColumn: `span ${span}`,
         padding: '1.75rem',
-        background: 'rgba(255,255,255,0.03)',
+        background: 'var(--c-surface-2)',
         borderRadius: '1rem',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--c-border-2)',
       }}
     >
-      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C4717A', marginBottom: '1.25rem' }}>{title}</p>
+      <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '1.25rem' }}>{title}</p>
       {children}
     </motion.div>
   )
@@ -455,20 +456,20 @@ export default function Robin() {
 
   // ── Gates ──────────────────────────────────────────────────
   if (authLoading) return (
-    <div style={{ minHeight: '100vh', background: '#0D0F0E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#3a3028', letterSpacing: '0.15em' }}>…</p>
+    <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--c-dim)', letterSpacing: '0.15em' }}>…</p>
     </div>
   )
 
   if (!user) return (
-    <div style={{ minHeight: '100vh', background: '#0D0F0E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', color: '#C4717A', marginBottom: '0.75rem' }}>ROBIN // INTERNAL</p>
-        <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '2.5rem', fontWeight: 400, color: '#FAF7F2', marginBottom: '2rem' }}>
-          The suite, <em style={{ color: '#C4717A' }}>in aggregate.</em>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', color: 'var(--c-accent)', marginBottom: '0.75rem' }}>ROBIN // INTERNAL</p>
+        <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '2.5rem', fontWeight: 400, color: 'var(--c-fg)', marginBottom: '2rem' }}>
+          The suite, <em style={{ color: 'var(--c-accent)' }}>in aggregate.</em>
         </h1>
         <button onClick={signInWithGoogle}
-          style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.15em', color: '#FAF7F2', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', padding: '0.75rem 2.5rem', borderRadius: '4px', cursor: 'pointer' }}>
+          style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.15em', color: 'var(--c-fg)', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', padding: '0.75rem 2.5rem', borderRadius: '4px', cursor: 'pointer' }}>
           sign in
         </button>
       </div>
@@ -476,21 +477,21 @@ export default function Robin() {
   )
 
   if (error === 'unauthorized' || user.email !== ADMIN_EMAIL) return (
-    <div style={{ minHeight: '100vh', background: '#0D0F0E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#5a5048' }}>access denied</p>
+    <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--c-muted)' }}>access denied</p>
     </div>
   )
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0D0F0E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#5a5048', letterSpacing: '0.1em' }}>loading robin…</p>
+    <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--c-muted)', letterSpacing: '0.1em' }}>loading robin…</p>
     </div>
   )
 
   const ov = data?.overview ?? {}
 
   return (
-    <main style={{ minHeight: '100vh', background: '#0D0F0E', color: '#FAF7F2', padding: 'clamp(3rem,6vw,5rem) clamp(1rem,4vw,3rem)' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--c-bg)', color: 'var(--c-fg)', padding: 'clamp(3rem,6vw,5rem) clamp(1rem,4vw,3rem)' }}>
       <style>{`
         @keyframes ticker-scroll {
           from { transform: translateX(0); }
@@ -501,12 +502,15 @@ export default function Robin() {
 
         {/* Header */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '0.5rem' }}>
-            <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', color: '#C4717A' }}>ROBIN</p>
-            <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: '#3a3028' }}>INTERNAL ANALYTICS // MIN COHORT {MIN_COHORT}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
+              <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', color: 'var(--c-accent)' }}>ROBIN</p>
+              <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--c-dim)' }}>INTERNAL ANALYTICS // MIN COHORT {MIN_COHORT}</p>
+            </div>
+            <ThemeDropdown />
           </div>
-          <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: 'clamp(28px,4vw,48px)', fontWeight: 400, color: '#FAF7F2', lineHeight: 1.1 }}>
-            The suite, <span style={{ fontStyle: 'italic', color: '#C4717A' }}>in aggregate.</span>
+          <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: 'clamp(28px,4vw,48px)', fontWeight: 400, color: 'var(--c-fg)', lineHeight: 1.1 }}>
+            The suite, <span style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>in aggregate.</span>
           </h1>
         </motion.div>
 
@@ -585,12 +589,12 @@ export default function Robin() {
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: '#3a3028', letterSpacing: '0.1em' }}>
+        <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid var(--c-border-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: 'var(--c-dim)', letterSpacing: '0.1em' }}>
             All insights suppressed below cohort {MIN_COHORT} · No individual data exposed
           </p>
           <button onClick={() => useAuthStore.getState().signOut()}
-            style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: '#3a3028', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.1em' }}>
+            style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: 'var(--c-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.1em' }}>
             sign out
           </button>
         </div>

@@ -274,7 +274,7 @@ function ModuleCard({ mod, data, editing, onMoveUp, onMoveDown, onToggle, isFirs
 
 // ── Main ──────────────────────────────────────────────────────────
 
-export default function UserDashboard({ user }) {
+export default function UserDashboard({ user, onExitPreview = null }) {
   const [modules, setModules]   = useState(null)
   const [moduleData, setModuleData] = useState(null)
   const [loading, setLoading]   = useState(true)
@@ -358,7 +358,15 @@ export default function UserDashboard({ user }) {
         {/* Header */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginBottom: '2.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <p style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.25em', color: 'var(--c-accent)' }}>ROBIN // YOUR RITUALWARE</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <p style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.25em', color: 'var(--c-accent)' }}>ROBIN // YOUR RITUALWARE</p>
+              {onExitPreview && (
+                <button onClick={onExitPreview}
+                  style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', color: 'var(--c-dim)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--c-border-2)', borderRadius: '4px', padding: '0.25rem 0.7rem', cursor: 'pointer' }}>
+                  back to admin
+                </button>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <button
                 onClick={() => setEditing(e => !e)}

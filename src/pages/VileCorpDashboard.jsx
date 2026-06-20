@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import ThemeDropdown from '../components/ThemeDropdown'
+import { supabase } from '../lib/supabase'
 
 // ── Constants ─────────────────────────────────────────────────────
 
@@ -12,28 +13,23 @@ const sans  = { fontFamily: '"DM Sans", sans-serif' }
 const GOLD    = '#C4A96E'
 const CRIMSON = 'var(--c-accent)'
 
-const LS = {
-  get: (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb } catch { return fb } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
-}
-
 const PLATFORMS = [
-  { id: 'tiktok',    label: 'TikTok',    color: '#ffffff', sub: 'audience acquisition' },
-  { id: 'youtube',   label: 'YouTube',   color: '#C4A96E', sub: 'long-form depth' },
-  { id: 'instagram', label: 'Instagram', color: '#C4717A', sub: 'aesthetic portfolio' },
-  { id: 'substack',  label: 'Substack',  color: '#A89BC4', sub: 'home base' },
-  { id: 'twitter',   label: 'X / Twitter', color: 'var(--c-muted2)', sub: 'real-time reach' },
+  { id: 'tiktok',    label: 'TikTok',      color: '#ffffff',            sub: 'audience acquisition' },
+  { id: 'youtube',   label: 'YouTube',     color: '#C4A96E',            sub: 'long-form depth' },
+  { id: 'instagram', label: 'Instagram',   color: '#C4717A',            sub: 'aesthetic portfolio' },
+  { id: 'substack',  label: 'Substack',    color: '#A89BC4',            sub: 'home base' },
+  { id: 'twitter',   label: 'X / Twitter', color: 'var(--c-muted2)',    sub: 'real-time reach' },
 ]
 
 const SERIES = [
-  { id: 'elles_world',       label: "Elle's World",           format: 'long',  desc: 'Transformation essay. Embody, decode, analyze.' },
-  { id: 'nyc_with_elle',     label: 'NYC with Elle',          format: 'long',  desc: 'The ritualized hedonist, in motion.' },
-  { id: 'hyperfixation',     label: 'Current Hyperfixation',  format: 'long',  desc: 'Taste-making. Affiliate revenue driver.' },
-  { id: 'silk_circuit',      label: 'Silk Circuit',           format: 'short', desc: 'Beauty infrastructure. Systems that manufacture atmosphere.' },
-  { id: 'villain_studies',   label: 'Villain Studies',        format: 'short', desc: 'Discovery funnel. Honest about desire.' },
-  { id: 'scored',            label: 'Scored',                 format: 'short', desc: 'Musical intelligence. Emotional architecture.' },
-  { id: 'morning_musings',   label: 'Morning Musings',        format: 'short', desc: 'Discovery funnel shorts.' },
-  { id: 'sweet_innovations', label: 'Sweet Innovations',      format: 'short', desc: 'Discovery funnel shorts.' },
+  { id: 'elles_world',       label: "Elle's World",          format: 'long',  desc: 'Transformation essay. Embody, decode, analyze.' },
+  { id: 'nyc_with_elle',     label: 'NYC with Elle',         format: 'long',  desc: 'The ritualized hedonist, in motion.' },
+  { id: 'hyperfixation',     label: 'Current Hyperfixation', format: 'long',  desc: 'Taste-making. Affiliate revenue driver.' },
+  { id: 'silk_circuit',      label: 'Silk Circuit',          format: 'short', desc: 'Beauty infrastructure. Systems that manufacture atmosphere.' },
+  { id: 'villain_studies',   label: 'Villain Studies',       format: 'short', desc: 'Discovery funnel. Honest about desire.' },
+  { id: 'scored',            label: 'Scored',                format: 'short', desc: 'Musical intelligence. Emotional architecture.' },
+  { id: 'morning_musings',   label: 'Morning Musings',       format: 'short', desc: 'Discovery funnel shorts.' },
+  { id: 'sweet_innovations', label: 'Sweet Innovations',     format: 'short', desc: 'Discovery funnel shorts.' },
 ]
 
 const STAGES = ['idea', 'scripting', 'shooting', 'editing', 'live']
@@ -48,8 +44,8 @@ const STAGE_COLORS = {
 const PHASES = [
   { n: 1, label: 'Audience & Authority',   detail: 'TikTok reach · YouTube depth · Substack foundation · Platform presence' },
   { n: 2, label: 'Investigations Drop',    detail: 'Hindenburg-style fraud breakdowns · Media pickups · Substack paid tier scales · Music sync accelerates' },
-  { n: 3, label: 'Scoring & Expansion',   detail: 'Film/TV scoring primary revenue · VILE LLC product line · Dual-city lifestyle (NYC + Nice)' },
-  { n: 4, label: 'Legacy',                detail: 'EGOT trajectory · Artist enclaves · Permanent creative infrastructure' },
+  { n: 3, label: 'Scoring & Expansion',    detail: 'Film/TV scoring primary revenue · VILE LLC product line · Dual-city lifestyle (NYC + Nice)' },
+  { n: 4, label: 'Legacy',                 detail: 'EGOT trajectory · Artist enclaves · Permanent creative infrastructure' },
 ]
 
 const AMMO_TABS = [
@@ -59,16 +55,15 @@ const AMMO_TABS = [
   { id: 'villain', label: 'Villain Studies',    query: 'villain con artist manipulator desire ambition' },
 ]
 
-const DEFAULT_PLATFORMS = Object.fromEntries(PLATFORMS.map(p => [p.id, '']))
-const DEFAULT_FRAUD_CASES = []
-const DEFAULT_REVENUE = [
-  { id: 1, stream: 'YouTube AdSense',    amount: '', notes: '' },
-  { id: 2, stream: 'Brand Partnerships', amount: '', notes: '' },
-  { id: 3, stream: 'Substack Paid',      amount: '', notes: '' },
-  { id: 4, stream: 'Music Sync',         amount: '', notes: '' },
-  { id: 5, stream: 'VILE LLC',           amount: '', notes: '' },
-]
 const DEFAULT_PIPELINE = Object.fromEntries(SERIES.map(s => [s.id, { stage: 'idea', note: '' }]))
+const DEFAULT_PLATFORMS = Object.fromEntries(PLATFORMS.map(p => [p.id, '']))
+const DEFAULT_REVENUE = [
+  { stream: 'YouTube AdSense',    amount: '', notes: '', sort_order: 0 },
+  { stream: 'Brand Partnerships', amount: '', notes: '', sort_order: 1 },
+  { stream: 'Substack Paid',      amount: '', notes: '', sort_order: 2 },
+  { stream: 'Music Sync',         amount: '', notes: '', sort_order: 3 },
+  { stream: 'VILE LLC',           amount: '', notes: '', sort_order: 4 },
+]
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -97,6 +92,37 @@ async function fetchAmmo(query, key) {
   } catch { return [] }
 }
 
+// ── Supabase helpers ──────────────────────────────────────────────
+// All writes are fire-and-forget; optimistic state is already applied.
+
+async function upsertPlatform(userId, platform, follower_count) {
+  await supabase.from('vile_platform_stats').upsert(
+    { user_id: userId, platform, follower_count, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,platform' }
+  )
+}
+
+async function upsertPipelineRow(userId, series_id, stage, note) {
+  await supabase.from('vile_content_pipeline').upsert(
+    { user_id: userId, series_id, stage, note, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,series_id' }
+  )
+}
+
+async function upsertRevenueStream(userId, stream, amount, notes, sort_order) {
+  await supabase.from('vile_revenue_streams').upsert(
+    { user_id: userId, stream, amount, notes, sort_order, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,stream' }
+  )
+}
+
+async function upsertPhase(userId, current_phase) {
+  await supabase.from('vile_empire_settings').upsert(
+    { user_id: userId, current_phase, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  )
+}
+
 // ── Editable number ───────────────────────────────────────────────
 
 function EditableNum({ value, onChange, placeholder = '0' }) {
@@ -108,14 +134,20 @@ function EditableNum({ value, onChange, placeholder = '0' }) {
       value={draft}
       onChange={e => setDraft(e.target.value)}
       onBlur={() => { onChange(draft); setEditing(false) }}
-      onKeyDown={e => { if (e.key === 'Enter') { onChange(draft); setEditing(false) } if (e.key === 'Escape') setEditing(false) }}
+      onKeyDown={e => {
+        if (e.key === 'Enter')  { onChange(draft); setEditing(false) }
+        if (e.key === 'Escape') { setEditing(false) }
+      }}
       placeholder={placeholder}
       style={{ background: 'transparent', border: 'none', borderBottom: `1px solid ${GOLD}`, outline: 'none', ...serif, fontSize: '2rem', color: 'var(--c-fg)', width: '120px', lineHeight: 1 }}
     />
   )
   return (
     <span onClick={() => { setDraft(value); setEditing(true) }} style={{ cursor: 'text' }}>
-      {fmtFollowers(value) === '—' ? <span style={{ ...mono, fontSize: '0.6rem', color: 'var(--c-dim)' }}>click to add</span> : fmtFollowers(value)}
+      {fmtFollowers(value) === '—'
+        ? <span style={{ ...mono, fontSize: '0.6rem', color: 'var(--c-dim)' }}>click to add</span>
+        : fmtFollowers(value)
+      }
     </span>
   )
 }
@@ -193,7 +225,11 @@ function ContentPipeline({ pipeline, onChange }) {
             autoFocus value={draft}
             onChange={e => setDraft(e.target.value)}
             onBlur={() => { onChange(s.id, { ...state, note: draft }); setEditNote(false) }}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { onChange(s.id, { ...state, note: draft }); setEditNote(false) } }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === 'Escape') {
+                onChange(s.id, { ...state, note: draft }); setEditNote(false)
+              }
+            }}
             placeholder="add a note…"
             style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: `1px solid var(--c-border-3)`, outline: 'none', ...sans, fontSize: '0.72rem', color: 'var(--c-fg)', padding: '0.1rem 0' }}
           />
@@ -297,18 +333,16 @@ function CulturalAmmo({ newsKey }) {
 const CASE_STAGES = ['researching', 'scripting', 'filming', 'published', 'dropped']
 const CASE_COLORS = { researching: 'var(--c-amber)', scripting: '#A89BC4', filming: GOLD, published: 'var(--c-up)', dropped: 'var(--c-dim)' }
 
-function FraudTracker({ cases, onChange }) {
+function FraudTracker({ cases, onChange, onAdd, onRemove, onUpdate }) {
   const [adding, setAdding] = useState(false)
   const [draft, setDraft]   = useState({ subject: '', stage: 'researching', notes: '' })
 
   const add = () => {
     if (!draft.subject.trim()) return
-    const next = [...cases, { id: Date.now(), ...draft }]
-    onChange(next); setAdding(false); setDraft({ subject: '', stage: 'researching', notes: '' })
+    onAdd(draft)
+    setAdding(false)
+    setDraft({ subject: '', stage: 'researching', notes: '' })
   }
-
-  const remove = id => onChange(cases.filter(c => c.id !== id))
-  const update = (id, patch) => onChange(cases.map(c => c.id === id ? { ...c, ...patch } : c))
 
   return (
     <div>
@@ -322,7 +356,7 @@ function FraudTracker({ cases, onChange }) {
               <p style={{ ...serif, fontSize: '0.95rem', color: 'var(--c-fg)' }}>{c.subject}</p>
               <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                 {CASE_STAGES.map(st => (
-                  <button key={st} onClick={() => update(c.id, { stage: st })}
+                  <button key={st} onClick={() => onUpdate(c.id, { stage: st })}
                     style={{
                       ...mono, fontSize: '0.44rem', padding: '0.2rem 0.45rem', borderRadius: '3px', cursor: 'pointer', border: 'none',
                       background: c.stage === st ? CASE_COLORS[st] : 'var(--c-surface-3)',
@@ -331,7 +365,7 @@ function FraudTracker({ cases, onChange }) {
                     }}
                   >{st}</button>
                 ))}
-                <button onClick={() => remove(c.id)} style={{ ...mono, fontSize: '0.6rem', color: 'var(--c-dim)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '0.25rem' }}>×</button>
+                <button onClick={() => onRemove(c.id)} style={{ ...mono, fontSize: '0.6rem', color: 'var(--c-dim)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '0.25rem' }}>×</button>
               </div>
             </div>
             <p style={{ ...sans, fontSize: '0.72rem', color: 'var(--c-muted)' }}>{c.notes || <em style={{ color: 'var(--c-dim)' }}>no notes</em>}</p>
@@ -368,27 +402,26 @@ function FraudTracker({ cases, onChange }) {
 // ── Revenue streams ───────────────────────────────────────────────
 
 function RevenueStreams({ streams, onChange }) {
-  const update = (id, patch) => onChange(streams.map(s => s.id === id ? { ...s, ...patch } : s))
   const total = streams.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0)
 
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
         {streams.map(s => (
-          <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '160px 100px 1fr', gap: '0.75rem', alignItems: 'center', padding: '0.55rem 0', borderBottom: '1px solid var(--c-border-1)' }}>
+          <div key={s.stream} style={{ display: 'grid', gridTemplateColumns: '160px 100px 1fr', gap: '0.75rem', alignItems: 'center', padding: '0.55rem 0', borderBottom: '1px solid var(--c-border-1)' }}>
             <span style={{ ...mono, fontSize: '0.65rem', color: 'var(--c-muted)' }}>{s.stream}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
               <span style={{ ...mono, fontSize: '0.6rem', color: 'var(--c-dim)' }}>$</span>
               <input
                 value={s.amount}
-                onChange={e => update(s.id, { amount: e.target.value })}
+                onChange={e => onChange(s.stream, { amount: e.target.value })}
                 placeholder="0"
                 style={{ width: '70px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--c-border-3)', outline: 'none', ...mono, fontSize: '0.75rem', color: 'var(--c-fg)', textAlign: 'right' }}
               />
             </div>
             <input
               value={s.notes}
-              onChange={e => update(s.id, { notes: e.target.value })}
+              onChange={e => onChange(s.stream, { notes: e.target.value })}
               placeholder="notes…"
               style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--c-border-1)', outline: 'none', ...sans, fontSize: '0.7rem', color: 'var(--c-muted)' }}
             />
@@ -413,12 +446,13 @@ function PhaseProgress({ currentPhase, onChange }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
       {PHASES.map(p => {
-        const active  = p.n === currentPhase
-        const done    = p.n < currentPhase
+        const active = p.n === currentPhase
+        const done   = p.n < currentPhase
         return (
           <button key={p.n} onClick={() => onChange(p.n)}
             style={{
-              padding: '1.1rem', background: active ? 'rgba(196,169,110,0.1)' : done ? 'rgba(106,173,138,0.06)' : 'var(--c-surface-2)',
+              padding: '1.1rem',
+              background: active ? 'rgba(196,169,110,0.1)' : done ? 'rgba(106,173,138,0.06)' : 'var(--c-surface-2)',
               border: active ? `1px solid ${GOLD}` : done ? '1px solid rgba(106,173,138,0.25)' : '1px solid var(--c-border-2)',
               borderRadius: '0.75rem', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
             }}
@@ -442,27 +476,122 @@ function PhaseProgress({ currentPhase, onChange }) {
 // ── Main ──────────────────────────────────────────────────────────
 
 export default function VileCorpDashboard() {
-  const [newsKey]  = useState(() => LS.get('ritualwear_news_key', null))
+  const [userId, setUserId]           = useState(null)
+  const [loading, setLoading]         = useState(true)
+  const [newsKey]                     = useState(() => {
+    try { return localStorage.getItem('ritualwear_news_key') } catch { return null }
+  })
 
-  const [platformStats, setPlatformStats] = useState(() => LS.get('vile_platforms', DEFAULT_PLATFORMS))
-  const [pipeline, setPipeline]           = useState(() => LS.get('vile_pipeline', DEFAULT_PIPELINE))
-  const [fraudCases, setFraudCases]       = useState(() => LS.get('vile_fraud_cases', DEFAULT_FRAUD_CASES))
-  const [revenue, setRevenue]             = useState(() => LS.get('vile_revenue', DEFAULT_REVENUE))
-  const [currentPhase, setCurrentPhase]   = useState(() => LS.get('vile_phase', 1))
+  const [platformStats, setPlatformStats] = useState(DEFAULT_PLATFORMS)
+  const [pipeline, setPipeline]           = useState(DEFAULT_PIPELINE)
+  const [fraudCases, setFraudCases]       = useState([])
+  const [revenue, setRevenue]             = useState(DEFAULT_REVENUE)
+  const [currentPhase, setCurrentPhase]   = useState(1)
+
+  // Debounce refs for revenue (fires on every keystroke)
+  const revenueTimer = useRef({})
+
+  // ── Load all data ──────────────────────────────────────────────
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      setUserId(user.id)
+
+      const [platforms, pipe, fraud, rev, settings] = await Promise.all([
+        supabase.from('vile_platform_stats').select('*').eq('user_id', user.id),
+        supabase.from('vile_content_pipeline').select('*').eq('user_id', user.id),
+        supabase.from('vile_fraud_cases').select('*').eq('user_id', user.id).order('created_at'),
+        supabase.from('vile_revenue_streams').select('*').eq('user_id', user.id).order('sort_order'),
+        supabase.from('vile_empire_settings').select('*').eq('user_id', user.id).maybeSingle(),
+      ])
+
+      if (platforms.data?.length) {
+        const map = { ...DEFAULT_PLATFORMS }
+        platforms.data.forEach(r => { map[r.platform] = r.follower_count })
+        setPlatformStats(map)
+      }
+
+      if (pipe.data?.length) {
+        const map = { ...DEFAULT_PIPELINE }
+        pipe.data.forEach(r => { map[r.series_id] = { stage: r.stage, note: r.note } })
+        setPipeline(map)
+      }
+
+      if (fraud.data?.length) setFraudCases(fraud.data)
+
+      if (rev.data?.length) {
+        // Merge DB rows into default order; add any new defaults not yet in DB
+        const dbMap = Object.fromEntries(rev.data.map(r => [r.stream, r]))
+        const merged = DEFAULT_REVENUE.map(d => dbMap[d.stream] ?? d)
+        setRevenue(merged)
+      }
+
+      if (settings.data) setCurrentPhase(settings.data.current_phase)
+
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  // ── Handlers ───────────────────────────────────────────────────
 
   const savePlatform = (id, val) => {
-    const next = { ...platformStats, [id]: val }
-    setPlatformStats(next); LS.set('vile_platforms', next)
+    setPlatformStats(prev => ({ ...prev, [id]: val }))
+    if (userId) upsertPlatform(userId, id, val)
   }
 
   const savePipeline = (id, state) => {
-    const next = { ...pipeline, [id]: state }
-    setPipeline(next); LS.set('vile_pipeline', next)
+    setPipeline(prev => ({ ...prev, [id]: state }))
+    if (userId) upsertPipelineRow(userId, id, state.stage, state.note)
   }
 
-  const saveFraud = cases => { setFraudCases(cases); LS.set('vile_fraud_cases', cases) }
-  const saveRevenue = streams => { setRevenue(streams); LS.set('vile_revenue', streams) }
-  const savePhase = n => { setCurrentPhase(n); LS.set('vile_phase', n) }
+  const savePhase = n => {
+    setCurrentPhase(n)
+    if (userId) upsertPhase(userId, n)
+  }
+
+  const saveRevenue = (stream, patch) => {
+    setRevenue(prev => prev.map(s => s.stream === stream ? { ...s, ...patch } : s))
+    // Debounce per stream so rapid typing doesn't flood Supabase
+    if (userId) {
+      clearTimeout(revenueTimer.current[stream])
+      revenueTimer.current[stream] = setTimeout(() => {
+        setRevenue(prev => {
+          const s = prev.find(r => r.stream === stream)
+          if (s) upsertRevenueStream(userId, s.stream, s.amount, s.notes, s.sort_order)
+          return prev
+        })
+      }, 600)
+    }
+  }
+
+  const addFraudCase = async (draft) => {
+    if (!userId) return
+    const optimistic = { id: crypto.randomUUID(), user_id: userId, ...draft, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+    setFraudCases(prev => [...prev, optimistic])
+    const { data } = await supabase.from('vile_fraud_cases').insert({ user_id: userId, ...draft }).select().single()
+    if (data) setFraudCases(prev => prev.map(c => c.id === optimistic.id ? data : c))
+  }
+
+  const removeFraudCase = async (id) => {
+    setFraudCases(prev => prev.filter(c => c.id !== id))
+    if (userId) await supabase.from('vile_fraud_cases').delete().eq('id', id).eq('user_id', userId)
+  }
+
+  const updateFraudCase = async (id, patch) => {
+    setFraudCases(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
+    if (userId) await supabase.from('vile_fraud_cases').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', userId)
+  }
+
+  // ── Render ─────────────────────────────────────────────────────
+
+  if (loading) return (
+    <main style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ ...mono, fontSize: '0.6rem', letterSpacing: '0.2em', color: 'var(--c-dim)' }}>loading empire data…</p>
+    </main>
+  )
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--c-bg)', color: 'var(--c-fg)', padding: 'clamp(2rem,4vw,3.5rem) clamp(1rem,3vw,2.5rem)' }}>
@@ -520,7 +649,12 @@ export default function VileCorpDashboard() {
             <CulturalAmmo newsKey={newsKey} />
           </Panel>
           <Panel title="fraud case tracker // active investigations">
-            <FraudTracker cases={fraudCases} onChange={saveFraud} />
+            <FraudTracker
+              cases={fraudCases}
+              onAdd={addFraudCase}
+              onRemove={removeFraudCase}
+              onUpdate={updateFraudCase}
+            />
           </Panel>
         </div>
 

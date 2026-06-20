@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { supabase } from '../lib/supabase'
 import ThemeDropdown from '../components/ThemeDropdown'
+import UserDashboard from './UserDashboard'
 
 const ADMIN_EMAIL = 'ADMIN_EMAIL_REDACTED'
 const MIN_COHORT  = 50
@@ -520,7 +521,7 @@ export default function Robin() {
   }, [])
 
   useEffect(() => {
-    if (!user) return
+    if (!user || user.email !== ADMIN_EMAIL) return
     runHealthChecks()
     intervalRef.current = setInterval(runHealthChecks, 5 * 60 * 1000)
     return () => clearInterval(intervalRef.current)
@@ -573,7 +574,7 @@ export default function Robin() {
     }
   }, [user])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { if (user?.email === ADMIN_EMAIL) load() }, [load, user])
 
   // ── Gates ──────────────────────────────────────────────────
   if (authLoading) return (
@@ -597,11 +598,7 @@ export default function Robin() {
     </div>
   )
 
-  if (error === 'unauthorized' || user.email !== ADMIN_EMAIL) return (
-    <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--c-muted)' }}>access denied</p>
-    </div>
-  )
+  if (user.email !== ADMIN_EMAIL) return <UserDashboard user={user} />
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

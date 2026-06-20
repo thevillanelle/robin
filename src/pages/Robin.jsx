@@ -576,6 +576,8 @@ export default function Robin() {
 
   useEffect(() => { if (user?.email === ADMIN_EMAIL) load() }, [load, user])
 
+  const [previewUser, setPreviewUser] = useState(false)
+
   // ── Gates ──────────────────────────────────────────────────
   if (authLoading) return (
     <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -598,7 +600,7 @@ export default function Robin() {
     </div>
   )
 
-  if (user.email !== ADMIN_EMAIL) return <UserDashboard user={user} />
+  if (user.email !== ADMIN_EMAIL || previewUser) return <UserDashboard user={user} onExitPreview={previewUser ? () => setPreviewUser(false) : null} />
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -625,7 +627,13 @@ export default function Robin() {
               <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', color: 'var(--c-accent)' }}>ROBIN</p>
               <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--c-dim)' }}>INTERNAL ANALYTICS // MIN COHORT {MIN_COHORT}</p>
             </div>
-            <ThemeDropdown />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button onClick={() => setPreviewUser(true)}
+                style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--c-accent)', background: 'transparent', border: '1px solid var(--c-accent)', padding: '0.35rem 0.9rem', borderRadius: '4px', cursor: 'pointer', opacity: 0.7 }}>
+                preview user view
+              </button>
+              <ThemeDropdown />
+            </div>
           </div>
           <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: 'clamp(28px,4vw,48px)', fontWeight: 400, color: 'var(--c-fg)', lineHeight: 1.1 }}>
             The suite, <span style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>in aggregate.</span>

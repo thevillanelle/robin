@@ -10,7 +10,7 @@ const ADMIN_EMAIL = 'krystine.hall@gmail.com'
 const MIN_COHORT  = 50
 
 const SERVICES = [
-  { name: 'Ritualware',   sub: 'marketing',  url: 'https://ritualware.app/health.json',          route: '/app/vile' },
+  { name: 'Ritualware',   sub: 'marketing',  url: 'https://www.ritualware.app/health.json',      route: '/app/vile' },
   { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json',    route: '/app/wear' },
   { name: 'Glow Up',      sub: 'pyramid',     url: 'https://glowup.ritualware.app/health.json',  route: '/app/glowup' },
   { name: 'Ritualwhere?', sub: 'map',         url: 'https://where.ritualware.app/health.json',   route: '/app/where' },
@@ -635,9 +635,6 @@ export default function Robin() {
               <ThemeDropdown />
             </div>
           </div>
-          <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: 'clamp(28px,4vw,48px)', fontWeight: 400, color: 'var(--c-fg)', lineHeight: 1.1 }}>
-            The suite, <span style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>in aggregate.</span>
-          </h1>
         </motion.div>
 
         {/* Ticker */}
@@ -666,9 +663,6 @@ export default function Robin() {
           <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '0.35rem' }}>
             Platform Analytics
           </p>
-          <h2 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: 'clamp(18px,2.5vw,28px)', fontWeight: 400, color: 'var(--c-fg)', lineHeight: 1.1 }}>
-            The suite, <em style={{ color: 'var(--c-accent)' }}>in numbers.</em>
-          </h2>
         </motion.div>
 
         {/* Overview stats */}

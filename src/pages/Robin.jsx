@@ -28,8 +28,9 @@ async function checkService(svc) {
     if (!res.ok) return { ...svc, status: 'down', ms, code: res.status }
     const json = await res.json()
     return { ...svc, status: json.status === 'ok' ? 'up' : 'degraded', ms }
-  } catch {
+  } catch (err) {
     const ms = Math.round(performance.now() - t0)
+    console.error(`[robin] health check failed for ${svc.name}:`, err)
     return { ...svc, status: 'down', ms, code: 'ERR' }
   }
 }

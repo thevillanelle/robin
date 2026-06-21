@@ -590,9 +590,6 @@ export default function Robin() {
     <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.25em', color: 'var(--c-accent)', marginBottom: '0.75rem' }}>ROBIN // INTERNAL</p>
-        <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: '2.5rem', fontWeight: 400, color: 'var(--c-fg)', marginBottom: '2rem' }}>
-          The suite, <em style={{ color: 'var(--c-accent)' }}>in aggregate.</em>
-        </h1>
         <button onClick={signInWithGoogle}
           style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.15em', color: 'var(--c-fg)', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', padding: '0.75rem 2.5rem', borderRadius: '4px', cursor: 'pointer' }}>
           sign in

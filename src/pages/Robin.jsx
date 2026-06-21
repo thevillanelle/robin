@@ -628,7 +628,7 @@ export default function Robin() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <button onClick={() => setPreviewUser(true)}
                 style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--c-accent)', background: 'transparent', border: '1px solid var(--c-accent)', padding: '0.35rem 0.9rem', borderRadius: '4px', cursor: 'pointer', opacity: 0.7 }}>
-                preview user view
+                standard view
               </button>
               <ThemeDropdown />
             </div>

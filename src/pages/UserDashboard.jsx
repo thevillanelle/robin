@@ -280,6 +280,7 @@ export default function UserDashboard({ user, onExitPreview = null }) {
   const [loading, setLoading]   = useState(true)
   const [editing, setEditing]   = useState(false)
   const [saving, setSaving]     = useState(false)
+  const [showAddTray, setShowAddTray] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -331,6 +332,18 @@ export default function UserDashboard({ user, onExitPreview = null }) {
       saveModules(next)
       return next
     })
+  }
+
+  const addModule = (id) => {
+    setModules(prev => {
+      const existing = prev.find(m => m.id === id)
+      const next = existing
+        ? prev.map(m => m.id === id ? { ...m, enabled: true } : m)
+        : [...prev, { id, enabled: true, order: prev.length }]
+      saveModules(next)
+      return next
+    })
+    setShowAddTray(false)
   }
 
   const retakeQuiz = async () => {
@@ -400,6 +413,72 @@ export default function UserDashboard({ user, onExitPreview = null }) {
             ))}
           </AnimatePresence>
         </div>
+
+        {/* Add module tray */}
+        {(() => {
+          const addable = Object.keys(MODULE_META).filter(id => {
+            const inConfig = modules.find(m => m.id === id)
+            return !inConfig || !inConfig.enabled
+          })
+          if (!addable.length) return null
+          return (
+            <div style={{ marginBottom: '2rem' }}>
+              {showAddTray ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  style={{ padding: '1.25rem', background: 'var(--c-surface-1)', borderRadius: '0.75rem', border: '1px solid var(--c-border-2)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                    <p style={{ ...mono, fontSize: '0.55rem', letterSpacing: '0.2em', color: 'var(--c-accent)', textTransform: 'uppercase' }}>add a module</p>
+                    <button onClick={() => setShowAddTray(false)}
+                      style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      cancel
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {addable.map(id => {
+                      const meta = MODULE_META[id]
+                      return (
+                        <motion.button key={id}
+                          whileHover={{ scale: 1.02 }}
+                          onClick={() => addModule(id)}
+                          style={{
+                            ...mono, fontSize: '0.6rem', letterSpacing: '0.1em',
+                            display: 'flex', flexDirection: 'column', gap: '0.2rem',
+                            padding: '0.6rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                            background: 'var(--c-surface-2)',
+                            border: `1px solid ${meta.color}40`,
+                            color: meta.color, textAlign: 'left',
+                          }}
+                        >
+                          <span>{meta.label}</span>
+                          <span style={{ ...sans, fontSize: '0.65rem', color: 'var(--c-dim)' }}>{meta.tagline}</span>
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              ) : (
+                <button
+                  onClick={() => setShowAddTray(true)}
+                  style={{
+                    ...mono, fontSize: '0.55rem', letterSpacing: '0.15em',
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    width: '100%', padding: '0.75rem 1.25rem',
+                    background: 'none', border: '1px dashed var(--c-border-2)',
+                    borderRadius: '0.75rem', cursor: 'pointer',
+                    color: 'var(--c-dim)', transition: 'border-color 0.2s, color 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-border-3)'; e.currentTarget.style.color = 'var(--c-muted)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--c-border-2)'; e.currentTarget.style.color = 'var(--c-dim)' }}
+                >
+                  <span style={{ fontSize: '1rem', lineHeight: 1 }}>+</span>
+                  <span>add a module</span>
+                </button>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Footer */}
         <div style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--c-border-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>

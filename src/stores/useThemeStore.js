@@ -107,11 +107,16 @@ export const THEMES = {
 
 export const useThemeStore = create((set) => ({
   theme: localStorage.getItem('robin_theme') ?? 'dark',
+  view:  localStorage.getItem('robin_view')  ?? 'dashboard',
   setTheme: (theme) => {
     localStorage.setItem('robin_theme', theme)
     const vars = THEMES[theme]?.vars ?? THEMES.dark.vars
     Object.entries(vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v))
     set({ theme })
+  },
+  setView: (view) => {
+    localStorage.setItem('robin_view', view)
+    set({ view })
   },
 }))
 

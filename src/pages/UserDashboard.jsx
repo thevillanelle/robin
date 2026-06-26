@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import DoTheDash from './DoTheDash'
+import ThemeDropdown from '../components/ThemeDropdown'
 
 // ── Brand ──────────────────────────────────────────────────────────
 const ROBIN = '#8B2E0F'        // deep robin's breast
@@ -470,10 +471,13 @@ export default function UserDashboard({ user, onExitPreview = null }) {
             </button>
           )}
         </div>
-        <button onClick={() => supabase.auth.signOut()}
-          style={{ ...mono, fontSize: '10px', letterSpacing: '0.12em', color: CREAM_MUTED, background: 'none', border: 'none', cursor: 'pointer' }}>
-          sign out
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <ThemeDropdown />
+          <button onClick={() => supabase.auth.signOut()}
+            style={{ ...mono, fontSize: '10px', letterSpacing: '0.12em', color: CREAM_MUTED, background: 'none', border: 'none', cursor: 'pointer' }}>
+            sign out
+          </button>
+        </div>
       </div>
 
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: 'clamp(3rem, 6vw, 6rem) clamp(1.5rem, 4vw, 3.5rem) 8rem' }}>

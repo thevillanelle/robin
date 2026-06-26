@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import ThemeDropdown from '../components/ThemeDropdown'
 import UserDashboard from './UserDashboard'
 
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
+const ADMIN_EMAIL = 'ADMIN_EMAIL_REDACTED'
 const MIN_COHORT  = 50
 
 const SERVICES = [
@@ -577,8 +577,7 @@ export default function Robin() {
 
   useEffect(() => { if (user?.email === ADMIN_EMAIL) load() }, [load, user])
 
-  const [previewUser,  setPreviewUser]  = useState(false)
-  const [fauxProfile,  setFauxProfile]  = useState(false)
+  const [previewUser, setPreviewUser] = useState(false)
 
   // ── Gates ──────────────────────────────────────────────────
   if (authLoading) return (
@@ -599,13 +598,7 @@ export default function Robin() {
     </div>
   )
 
-  if (user.email !== ADMIN_EMAIL || previewUser || fauxProfile) return (
-    <UserDashboard
-      user={user}
-      onExitPreview={(previewUser || fauxProfile) ? () => { setPreviewUser(false); setFauxProfile(false) } : null}
-      faux={fauxProfile && user.email === ADMIN_EMAIL}
-    />
-  )
+  if (user.email !== ADMIN_EMAIL || previewUser) return <UserDashboard user={user} onExitPreview={previewUser ? () => setPreviewUser(false) : null} />
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -636,10 +629,6 @@ export default function Robin() {
               <button onClick={() => setPreviewUser(true)}
                 style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--c-accent)', background: 'transparent', border: '1px solid var(--c-accent)', padding: '0.35rem 0.9rem', borderRadius: '4px', cursor: 'pointer', opacity: 0.7 }}>
                 standard view
-              </button>
-              <button onClick={() => setFauxProfile(true)}
-                style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--c-amber)', background: 'transparent', border: '1px solid var(--c-amber)', padding: '0.35rem 0.9rem', borderRadius: '4px', cursor: 'pointer', opacity: 0.7 }}>
-                faux profile
               </button>
               <ThemeDropdown />
             </div>

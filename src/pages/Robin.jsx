@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import ThemeDropdown from '../components/ThemeDropdown'
 import UserDashboard from './UserDashboard'
 
-const ADMIN_EMAIL = 'ADMIN_EMAIL_REDACTED'
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 const MIN_COHORT  = 50
 
 const SERVICES = [

@@ -217,19 +217,19 @@ async function fetchModuleData(userId) {
 
 // ── Atoms ─────────────────────────────────────────────────────────
 function FL({ children, color }) {
-  return <p style={{ ...mono, fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: color || 'var(--c-muted)', marginBottom: '3px', marginTop: '10px' }}>{children}</p>
+  return <p style={{ ...mono, fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: color || 'var(--c-muted)', marginBottom: '4px', marginTop: '12px' }}>{children}</p>
 }
 function FVBig({ children, color }) {
-  return <p style={{ ...display, fontSize: '16px', color: color || 'var(--c-fg)', textTransform: 'capitalize', lineHeight: 1.15 }}>{children}</p>
+  return <p style={{ ...display, fontSize: '20px', color: color || 'var(--c-fg)', textTransform: 'capitalize', lineHeight: 1.15 }}>{children}</p>
 }
 function FV({ children, style = {} }) {
-  return <p style={{ ...sans, fontSize: '12px', color: 'var(--c-fg)', textTransform: 'capitalize', ...style }}>{children}</p>
+  return <p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)', textTransform: 'capitalize', ...style }}>{children}</p>
 }
 function Italic({ children, color }) {
-  return <p style={{ ...sans, fontSize: '11px', color: color || 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6, marginTop: '3px' }}>{children}</p>
+  return <p style={{ ...sans, fontSize: '13px', color: color || 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.65, marginTop: '4px' }}>{children}</p>
 }
 function Tag({ children, color }) {
-  return <span style={{ ...mono, fontSize: '10px', letterSpacing: '0.05em', color, border: `1px solid ${color}30`, borderRadius: '3px', padding: '2px 7px', textTransform: 'capitalize', display: 'inline-block', margin: '2px 2px 0 0' }}>{children}</span>
+  return <span style={{ ...mono, fontSize: '11px', letterSpacing: '0.05em', color, border: `1px solid ${color}30`, borderRadius: '3px', padding: '3px 8px', textTransform: 'capitalize', display: 'inline-block', margin: '2px 3px 0 0' }}>{children}</span>
 }
 function Bar({ pct, color, height = 2 }) {
   return (
@@ -247,13 +247,13 @@ function CardShell({ appKey, children }) {
     <div style={{ background: 'var(--c-surface-2)', border: '1px solid var(--c-border-2)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
         <div>
-          <p style={{ ...mono, fontSize: '9px', letterSpacing: '0.25em', color: app.color, marginBottom: '2px' }}>{app.sub.toUpperCase()}</p>
-          <p style={{ ...display, fontSize: '16px', color: 'var(--c-fg)', lineHeight: 1 }}>{app.label}</p>
+          <p style={{ ...mono, fontSize: '18px', letterSpacing: '0.25em', color: app.color, marginBottom: '2px' }}>{app.sub.toUpperCase()}</p>
+          <p style={{ ...display, fontSize: '19px', color: 'var(--c-fg)', lineHeight: 1 }}>{app.label}</p>
         </div>
-        <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '9px', color: 'var(--c-muted)', textDecoration: 'none', opacity: 0.4 }}>open ↗</a>
+        <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '18px', color: 'var(--c-muted)', textDecoration: 'none', opacity: 0.4 }}>open ↗</a>
       </div>
       <div style={{ flex: 1 }}>{children}</div>
-      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '9px', letterSpacing: '0.15em', color: app.color, textDecoration: 'none', opacity: 0.55, display: 'block', marginTop: '14px' }}
+      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '18px', letterSpacing: '0.15em', color: app.color, textDecoration: 'none', opacity: 0.55, display: 'block', marginTop: '14px' }}
         onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.55'}>
         go deeper in {app.label} ↗
       </a>
@@ -262,7 +262,7 @@ function CardShell({ appKey, children }) {
 }
 function EmptySlate({ appKey, text, cta, href }) {
   const app = APP[appKey]
-  return <div><p style={{ ...sans, fontStyle: 'italic', fontSize: '13px', color: 'var(--c-muted2)', lineHeight: 1.65, marginBottom: '10px' }}>{text}</p><a href={href} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '9px', letterSpacing: '0.15em', color: app.color, textDecoration: 'none' }}>{cta} ↗</a></div>
+  return <div><p style={{ ...sans, fontStyle: 'italic', fontSize: '13px', color: 'var(--c-muted2)', lineHeight: 1.65, marginBottom: '10px' }}>{text}</p><a href={href} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '18px', letterSpacing: '0.15em', color: app.color, textDecoration: 'none' }}>{cta} ↗</a></div>
 }
 
 // ── Style card ────────────────────────────────────────────────────
@@ -286,17 +286,17 @@ function StyleCard({ data }) {
       </div>
       {(emphasize.length > 0 || minimize.length > 0) && (
         <div><FL color={app.color}>Body notes</FL>
-          {emphasize.length > 0 && <p style={{ ...sans, fontSize: '11px', color: 'var(--c-fg)', marginTop: '2px' }}>Emphasize: <span style={{ color: app.color }}>{emphasize.map(fmt).join(', ')}</span></p>}
-          {minimize.length  > 0 && <p style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', marginTop: '2px' }}>Minimize: {minimize.map(fmt).join(', ')}</p>}
+          {emphasize.length > 0 && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)', marginTop: '2px' }}>Emphasize: <span style={{ color: app.color }}>{emphasize.map(fmt).join(', ')}</span></p>}
+          {minimize.length  > 0 && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', marginTop: '2px' }}>Minimize: {minimize.map(fmt).join(', ')}</p>}
         </div>
       )}
       {profile.style_words?.length > 0 && <div><FL color={app.color}>Style words</FL><div style={{ marginTop: '4px' }}>{profile.style_words.map(w => <Tag key={w} color={app.color}>{fmt(w)}</Tag>)}</div></div>}
       {profile.era_references?.length > 0 && <div><FL color={app.color}>Era references</FL><div style={{ marginTop: '4px' }}>{profile.era_references.map(e => <Tag key={e} color={app.color}>{fmt(e)}</Tag>)}</div></div>}
       {profile.palette?.length > 0 && <div><FL color={app.color}>Palette</FL><div style={{ marginTop: '4px' }}>{profile.palette.map(p => <Tag key={p} color={app.color}>{fmt(p)}</Tag>)}</div></div>}
       {profile.fragrance_family?.length > 0 && <div><FL color={app.color}>Fragrance family</FL><div style={{ marginTop: '4px' }}>{profile.fragrance_family.map(f => <Tag key={f} color={app.color}>{fmt(f)}</Tag>)}</div></div>}
-      {profile.designer_dna?.length > 0 && <div><FL color={app.color}>Designer DNA</FL><p style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', lineHeight: 1.7, fontStyle: 'italic', marginTop: '3px' }}>{profile.designer_dna.join(' · ')}</p></div>}
-      {profile.fabrics?.length > 0 && <div><FL color={app.color}>Fabrics</FL><p style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', lineHeight: 1.7, marginTop: '2px' }}>{profile.fabrics.join(' · ')}</p></div>}
-      {looksCount > 0 && <p style={{ ...mono, fontSize: '9px', color: app.color, marginTop: '10px' }}>{looksCount} looks saved</p>}
+      {profile.designer_dna?.length > 0 && <div><FL color={app.color}>Designer DNA</FL><p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.7, fontStyle: 'italic', marginTop: '3px' }}>{profile.designer_dna.join(' · ')}</p></div>}
+      {profile.fabrics?.length > 0 && <div><FL color={app.color}>Fabrics</FL><p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.7, marginTop: '2px' }}>{profile.fabrics.join(' · ')}</p></div>}
+      {looksCount > 0 && <p style={{ ...mono, fontSize: '18px', color: app.color, marginTop: '10px' }}>{looksCount} looks saved</p>}
     </CardShell>
   )
 }
@@ -313,7 +313,7 @@ function BeautyCard({ data }) {
       {r?.overall_tier && <>
         <FL color={app.color}>Glow tier</FL>
         <FVBig color={app.color}>{fmt(r.overall_tier)}</FVBig>
-        {r.strongest_area && <p style={{ ...mono, fontSize: '9px', color: 'var(--c-muted)', marginTop: '3px' }}>strongest: <span style={{ color: app.color }}>{fmt(r.strongest_area)}</span></p>}
+        {r.strongest_area && <p style={{ ...mono, fontSize: '18px', color: 'var(--c-muted)', marginTop: '3px' }}>strongest: <span style={{ color: app.color }}>{fmt(r.strongest_area)}</span></p>}
         {r.headline && <Italic>{r.headline}</Italic>}
         {r.biggest_opportunity && <><Divider /><FL color={app.color}>Highest leverage</FL><Italic color={app.color}>{r.biggest_opportunity}</Italic></>}
       </>}
@@ -327,11 +327,11 @@ function BeautyCard({ data }) {
             return (
               <div key={k}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{k}</span>
-                  <span style={{ ...mono, fontSize: '9px', color: app.color }}>{entry.score}/10</span>
+                  <span style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{k}</span>
+                  <span style={{ ...mono, fontSize: '18px', color: app.color }}>{entry.score}/10</span>
                 </div>
                 <Bar pct={entry.score * 10} color={app.color} />
-                {entry.verdict && <p style={{ ...sans, fontSize: '10px', color: 'var(--c-muted)', lineHeight: 1.5, marginBottom: '3px' }}>{entry.verdict}</p>}
+                {entry.verdict && <p style={{ ...sans, fontSize: '13px', color: 'var(--c-muted)', lineHeight: 1.5, marginBottom: '3px' }}>{entry.verdict}</p>}
               </div>
             )
           })}
@@ -341,13 +341,13 @@ function BeautyCard({ data }) {
       {r?.non_negotiables?.length > 0 && <>
         <Divider />
         <FL color={app.color}>Non-negotiables</FL>
-        {r.non_negotiables.map((n, i) => <p key={i} style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', lineHeight: 1.5, marginTop: '2px' }}>— {n}</p>)}
+        {r.non_negotiables.map((n, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.5, marginTop: '2px' }}>— {n}</p>)}
       </>}
 
       {r?.quick_wins?.length > 0 && <>
         <Divider />
         <FL color={app.color}>Quick wins</FL>
-        {r.quick_wins.map((q, i) => <p key={i} style={{ ...sans, fontSize: '11px', color: 'var(--c-fg)', lineHeight: 1.5, marginTop: '2px' }}>✦ {q}</p>)}
+        {r.quick_wins.map((q, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)', lineHeight: 1.5, marginTop: '2px' }}>✦ {q}</p>)}
       </>}
 
       {r?.week_one_plan?.length > 0 && <>
@@ -355,11 +355,11 @@ function BeautyCard({ data }) {
         <FL color={app.color}>Week one</FL>
         {r.week_one_plan.map((p, i) => (
           <div key={i} style={{ marginTop: '5px', paddingBottom: '5px', borderBottom: '0.5px solid var(--c-border-1)' }}>
-            <p style={{ ...sans, fontSize: '11px', color: 'var(--c-fg)', fontWeight: 500 }}>{p.action}</p>
-            {p.why && <p style={{ ...sans, fontSize: '10px', color: 'var(--c-muted)', marginTop: '1px' }}>{p.why}</p>}
+            <p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)', fontWeight: 500 }}>{p.action}</p>
+            {p.why && <p style={{ ...sans, fontSize: '13px', color: 'var(--c-muted)', marginTop: '1px' }}>{p.why}</p>}
             <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
-              {p.cost && <span style={{ ...mono, fontSize: '8px', color: app.color }}>{p.cost}</span>}
-              {p.time && <span style={{ ...mono, fontSize: '8px', color: 'var(--c-muted)' }}>{p.time}</span>}
+              {p.cost && <span style={{ ...mono, fontSize: '14px', color: app.color }}>{p.cost}</span>}
+              {p.time && <span style={{ ...mono, fontSize: '14px', color: 'var(--c-muted)' }}>{p.time}</span>}
             </div>
           </div>
         ))}
@@ -375,7 +375,7 @@ function BeautyCard({ data }) {
         {styleFinder.result?.style_words?.length > 0 && <div style={{ marginTop: '5px' }}>{styleFinder.result.style_words.map(w => <Tag key={w} color={app.color}>{fmt(w)}</Tag>)}</div>}
         {styleFinder.result?.blind_spots?.length > 0 && <>
           <FL color={app.color}>Blind spots</FL>
-          {styleFinder.result.blind_spots.map((b, i) => <p key={i} style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', lineHeight: 1.5 }}>— {b}</p>)}
+          {styleFinder.result.blind_spots.map((b, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.5 }}>— {b}</p>)}
         </>}
       </>}
     </CardShell>
@@ -399,8 +399,8 @@ function PlaceCard({ data }) {
         <FVBig color={app.color}>{fmt(burnout.burnout_type)}</FVBig>
         {burnout.severity != null && <>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-            <span style={{ ...mono, fontSize: '9px', color: 'var(--c-muted)' }}>severity{burnout.is_chronic ? ' · chronic' : ''}</span>
-            <span style={{ ...mono, fontSize: '9px', color: app.color }}>{burnout.severity}/10</span>
+            <span style={{ ...mono, fontSize: '18px', color: 'var(--c-muted)' }}>severity{burnout.is_chronic ? ' · chronic' : ''}</span>
+            <span style={{ ...mono, fontSize: '18px', color: app.color }}>{burnout.severity}/10</span>
           </div>
           <Bar pct={burnout.severity * 10} color={app.color} />
         </>}
@@ -408,16 +408,16 @@ function PlaceCard({ data }) {
         {burnout.protocol?.note && <Italic color={app.color}>{burnout.protocol.note}</Italic>}
         {burnout.protocol?.immediate?.length > 0 && <>
           <FL color={app.color}>Immediate actions</FL>
-          {burnout.protocol.immediate.map((a, i) => <p key={i} style={{ ...sans, fontSize: '11px', color: 'var(--c-fg)', lineHeight: 1.55, marginTop: '3px' }}>— {a}</p>)}
+          {burnout.protocol.immediate.map((a, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)', lineHeight: 1.55, marginTop: '3px' }}>— {a}</p>)}
         </>}
-      </> : <a href="https://where.ritualware.app/burnout" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '9px', color: app.color, textDecoration: 'none', display: 'block', marginTop: '8px' }}>burnout audit ↗</a>}
+      </> : <a href="https://where.ritualware.app/burnout" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '18px', color: app.color, textDecoration: 'none', display: 'block', marginTop: '8px' }}>burnout audit ↗</a>}
 
       {reinvention ? <>
         <Divider />
         <FL color={app.color}>Reinvention{reinvention.quarter ? ` · ${reinvention.quarter}` : ''}</FL>
         <FV style={{ color: app.color }}>{fmt(reinvention.priority_area)}</FV>
-        <div style={{ marginTop: '5px' }}>{(reinvention.moves || []).map((m, i) => <p key={i} style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', lineHeight: 1.55, marginTop: '2px' }}>— {m}</p>)}</div>
-      </> : <a href="https://where.ritualware.app/reinvention" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '9px', color: app.color, textDecoration: 'none', display: 'block', marginTop: '8px' }}>quarterly reinvention ↗</a>}
+        <div style={{ marginTop: '5px' }}>{(reinvention.moves || []).map((m, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.55, marginTop: '2px' }}>— {m}</p>)}</div>
+      </> : <a href="https://where.ritualware.app/reinvention" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '18px', color: app.color, textDecoration: 'none', display: 'block', marginTop: '8px' }}>quarterly reinvention ↗</a>}
 
       {dating ? <>
         <Divider />
@@ -435,7 +435,7 @@ function PlaceCard({ data }) {
         {datingResult.pattern_fix && <><FL color={app.color}>Pattern fix</FL><Italic>{datingResult.pattern_fix}</Italic></>}
         {datingResult.cardinal_rule && <><FL color={app.color}>Cardinal rule</FL><Italic>{datingResult.cardinal_rule}</Italic></>}
         {datingResult.options_note && <><FL color={app.color}>Options</FL><Italic>{datingResult.options_note}</Italic></>}
-      </> : <a href="https://where.ritualware.app/dating" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '9px', color: app.color, textDecoration: 'none', display: 'block', marginTop: '8px' }}>dating quiz ↗</a>}
+      </> : <a href="https://where.ritualware.app/dating" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '18px', color: app.color, textDecoration: 'none', display: 'block', marginTop: '8px' }}>dating quiz ↗</a>}
     </CardShell>
   )
 }
@@ -469,15 +469,15 @@ function WealthCard({ data }) {
       {fireTypeResult?.desc && <Italic>{fireTypeResult.desc}</Italic>}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 10px' }}>
-        {firePlan.target_number && <div><FL color={app.color}>Target</FL><p style={{ ...display, fontSize: '15px', color: app.color }}>${Number(firePlan.target_number).toLocaleString()}</p></div>}
-        {firePlan.target_age    && <div><FL color={app.color}>Age</FL><p style={{ ...display, fontSize: '15px', color: 'var(--c-fg)' }}>{firePlan.target_age}</p></div>}
+        {firePlan.target_number && <div><FL color={app.color}>Target</FL><p style={{ ...display, fontSize: '18px', color: app.color }}>${Number(firePlan.target_number).toLocaleString()}</p></div>}
+        {firePlan.target_age    && <div><FL color={app.color}>Age</FL><p style={{ ...display, fontSize: '18px', color: 'var(--c-fg)' }}>{firePlan.target_age}</p></div>}
       </div>
 
       {riskResult && <>
         <Divider />
         <FL color={app.color}>Risk profile</FL>
         <FV style={{ color: app.color }}>{RISK_LABELS[riskResult.risk_profile] || fmt(riskResult.risk_profile)}</FV>
-        {riskResult.allocation && <p style={{ ...mono, fontSize: '10px', color: 'var(--c-muted2)', marginTop: '3px', lineHeight: 1.6 }}>{riskResult.allocation}</p>}
+        {riskResult.allocation && <p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted2)', marginTop: '3px', lineHeight: 1.6 }}>{riskResult.allocation}</p>}
         {riskResult.desc && <Italic>{riskResult.desc}</Italic>}
       </>}
 
@@ -509,7 +509,7 @@ function WealthCard({ data }) {
       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '5px' }}>
         {FIRE_QUIZZES.map(q => {
           const done = !!fireQuizResults[q.slug]
-          return <span key={q.slug} style={{ ...mono, fontSize: '8px', letterSpacing: '0.1em', padding: '2px 7px', borderRadius: '3px', background: done ? `${app.color}15` : 'transparent', color: done ? app.color : 'var(--c-muted)', border: `1px solid ${done ? `${app.color}30` : 'var(--c-border-1)'}` }}>{done ? '✓ ' : '○ '}{q.label}</span>
+          return <span key={q.slug} style={{ ...mono, fontSize: '14px', letterSpacing: '0.1em', padding: '2px 7px', borderRadius: '3px', background: done ? `${app.color}15` : 'transparent', color: done ? app.color : 'var(--c-muted)', border: `1px solid ${done ? `${app.color}30` : 'var(--c-border-1)'}` }}>{done ? '✓ ' : '○ '}{q.label}</span>
         })}
       </div>
 
@@ -517,7 +517,7 @@ function WealthCard({ data }) {
         <Divider />
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <FL color={app.color}>Savings</FL>
-          <span style={{ ...mono, fontSize: '9px', color: app.color, marginTop: '10px' }}>{Math.round(overallPct)}%</span>
+          <span style={{ ...mono, fontSize: '18px', color: app.color, marginTop: '10px' }}>{Math.round(overallPct)}%</span>
         </div>
         <Bar pct={overallPct} color={app.color} height={3} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
@@ -526,8 +526,8 @@ function WealthCard({ data }) {
             return (
               <div key={b.name}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ ...sans, fontSize: '11px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{fmt(b.name)}</span>
-                  <span style={{ ...mono, fontSize: '9px', color: app.color }}>${Number(b.current || 0).toLocaleString()} <span style={{ color: 'var(--c-muted)' }}>/ ${Number(b.target || 0).toLocaleString()}</span></span>
+                  <span style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{fmt(b.name)}</span>
+                  <span style={{ ...mono, fontSize: '18px', color: app.color }}>${Number(b.current || 0).toLocaleString()} <span style={{ color: 'var(--c-muted)' }}>/ ${Number(b.target || 0).toLocaleString()}</span></span>
                 </div>
                 <Bar pct={pct} color={app.color} />
               </div>
@@ -552,13 +552,13 @@ function StudioCard({ data }) {
           {projects.length > 0 && <>
             <FL color={app.color}>Active projects</FL>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '6px' }}>
-              {projects.map(p => <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}><div style={{ width: '5px', height: '5px', borderRadius: '50%', background: app.color, flexShrink: 0 }} /><p style={{ ...sans, fontSize: '12px', color: 'var(--c-fg)', textTransform: 'capitalize' }}>{fmt(p.name)}</p></div>)}
+              {projects.map(p => <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}><div style={{ width: '5px', height: '5px', borderRadius: '50%', background: app.color, flexShrink: 0 }} /><p style={{ ...sans, fontSize: '18px', color: 'var(--c-fg)', textTransform: 'capitalize' }}>{fmt(p.name)}</p></div>)}
             </div>
           </>}
           {circle.length > 0 && <div style={{ marginTop: '14px' }}>
             <FL color={app.color}>Circle</FL>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '5px' }}>
-              {circle.map(c => <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '12px', color: 'var(--c-fg)' }}>{c.name}</p><span style={{ ...mono, fontSize: '8px', color: 'var(--c-muted)' }}>{fmt(c.role)}</span></div>)}
+              {circle.map(c => <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '18px', color: 'var(--c-fg)' }}>{c.name}</p><span style={{ ...mono, fontSize: '14px', color: 'var(--c-muted)' }}>{fmt(c.role)}</span></div>)}
             </div>
           </div>}
         </div>
@@ -566,7 +566,7 @@ function StudioCard({ data }) {
           {goals.length > 0 && <>
             <FL color={app.color}>Goals — {doneGoals.length}/{goals.length}</FL>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '6px' }}>
-              {goals.map(g => <div key={g.title} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}><span style={{ ...mono, fontSize: '10px', color: g.is_complete ? app.color : 'var(--c-muted)' }}>{g.is_complete ? '✓' : '○'}</span><p style={{ ...sans, fontSize: '12px', color: g.is_complete ? 'var(--c-muted2)' : 'var(--c-fg)', textDecoration: g.is_complete ? 'line-through' : 'none' }}>{g.title}</p></div>)}
+              {goals.map(g => <div key={g.title} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}><span style={{ ...mono, fontSize: '13px', color: g.is_complete ? app.color : 'var(--c-muted)' }}>{g.is_complete ? '✓' : '○'}</span><p style={{ ...sans, fontSize: '18px', color: g.is_complete ? 'var(--c-muted2)' : 'var(--c-fg)', textDecoration: g.is_complete ? 'line-through' : 'none' }}>{g.title}</p></div>)}
             </div>
           </>}
         </div>
@@ -574,7 +574,7 @@ function StudioCard({ data }) {
           {skills.length > 0 && <>
             <FL color={app.color}>Skills</FL>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '6px' }}>
-              {skills.map(s => <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '12px', color: 'var(--c-fg)' }}>{s.label}</p><div style={{ display: 'flex', gap: '6px' }}><span style={{ ...mono, fontSize: '8px', color: 'var(--c-muted)' }}>{s.category}</span><span style={{ ...mono, fontSize: '8px', color: app.color }}>{s.level}</span></div></div>)}
+              {skills.map(s => <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '18px', color: 'var(--c-fg)' }}>{s.label}</p><div style={{ display: 'flex', gap: '6px' }}><span style={{ ...mono, fontSize: '14px', color: 'var(--c-muted)' }}>{s.category}</span><span style={{ ...mono, fontSize: '14px', color: app.color }}>{s.level}</span></div></div>)}
             </div>
           </>}
         </div>
@@ -588,13 +588,13 @@ function TopNav({ isFaux, onExitPreview }) {
   return (
     <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--c-bg)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--c-border-1)', padding: '0.85rem clamp(1.5rem,4vw,3.5rem)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <p style={{ ...mono, fontSize: '10px', letterSpacing: '0.3em', color: 'var(--c-accent)' }}>ROBIN</p>
-        {isFaux && <span style={{ ...mono, fontSize: '9px', color: 'var(--c-muted)', background: 'var(--c-surface-1)', border: '1px solid var(--c-border-2)', borderRadius: '3px', padding: '2px 8px' }}>faux profile</span>}
-        {onExitPreview && <button onClick={onExitPreview} style={{ ...mono, fontSize: '10px', letterSpacing: '0.1em', color: 'var(--c-muted)', background: 'none', border: '1px solid var(--c-border-2)', borderRadius: '4px', padding: '4px 12px', cursor: 'pointer' }}>back to admin</button>}
+        <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.3em', color: 'var(--c-accent)' }}>ROBIN</p>
+        {isFaux && <span style={{ ...mono, fontSize: '18px', color: 'var(--c-muted)', background: 'var(--c-surface-1)', border: '1px solid var(--c-border-2)', borderRadius: '3px', padding: '2px 8px' }}>faux profile</span>}
+        {onExitPreview && <button onClick={onExitPreview} style={{ ...mono, fontSize: '13px', letterSpacing: '0.1em', color: 'var(--c-muted)', background: 'none', border: '1px solid var(--c-border-2)', borderRadius: '4px', padding: '4px 12px', cursor: 'pointer' }}>back to admin</button>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <ThemeDropdown />
-        <button onClick={() => supabase.auth.signOut()} style={{ ...mono, fontSize: '10px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>sign out</button>
+        <button onClick={() => supabase.auth.signOut()} style={{ ...mono, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>sign out</button>
       </div>
     </div>
   )
@@ -609,16 +609,16 @@ function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) 
       <TopNav isFaux={isFaux} onExitPreview={onExitPreview} />
       <div style={{ padding: 'clamp(2rem,4vw,4rem) clamp(1.5rem,4vw,3rem) 6rem' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} style={{ marginBottom: '2rem' }}>
-          <p style={{ ...mono, fontSize: '10px', letterSpacing: '0.3em', color: 'var(--c-muted)', marginBottom: '0.6rem' }}>YOUR RITUAL PROFILE</p>
+          <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.3em', color: 'var(--c-muted)', marginBottom: '0.6rem' }}>YOUR RITUAL PROFILE</p>
           <h1 style={{ ...serif, fontStyle: 'italic', fontSize: 'clamp(28px,4vw,46px)', color: 'var(--c-fg)', lineHeight: 1, marginBottom: '1.25rem' }}>
             {name}'s ritual life, <span style={{ color: 'var(--c-accent)' }}>in depth.</span>
           </h1>
           <div style={{ background: 'var(--c-surface-1)', border: '1px solid var(--c-border-2)', borderRadius: '6px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '14px', maxWidth: '400px' }}>
-            <span style={{ ...mono, fontSize: '9px', letterSpacing: '0.2em', color: 'var(--c-accent)', whiteSpace: 'nowrap' }}>PROFILE</span>
+            <span style={{ ...mono, fontSize: '18px', letterSpacing: '0.2em', color: 'var(--c-accent)', whiteSpace: 'nowrap' }}>PROFILE</span>
             <div style={{ flex: 1, height: '3px', background: 'var(--c-border-2)', borderRadius: '2px', overflow: 'hidden' }}>
               <motion.div initial={{ width: 0 }} animate={{ width: `${(filled / 5) * 100}%` }} transition={{ duration: 1, ease: 'easeOut' }} style={{ height: '100%', background: 'var(--c-accent)', borderRadius: '2px' }} />
             </div>
-            <span style={{ ...mono, fontSize: '9px', color: 'var(--c-accent)', whiteSpace: 'nowrap' }}>{filled}/5</span>
+            <span style={{ ...mono, fontSize: '18px', color: 'var(--c-accent)', whiteSpace: 'nowrap' }}>{filled}/5</span>
           </div>
         </motion.div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -632,8 +632,8 @@ function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) 
           </motion.div>
         </div>
         <div style={{ borderTop: '1px solid var(--c-border-1)', paddingTop: '2rem', marginTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          {!isFaux && <button onClick={retakeQuiz} style={{ ...mono, fontSize: '10px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>retake do the dash</button>}
-          <p style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)', letterSpacing: '0.08em', opacity: 0.4 }}>robin · ritualware suite</p>
+          {!isFaux && <button onClick={retakeQuiz} style={{ ...mono, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>retake do the dash</button>}
+          <p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)', letterSpacing: '0.08em', opacity: 0.4 }}>robin · ritualware suite</p>
         </div>
       </div>
     </main>
@@ -648,7 +648,7 @@ function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) {
       <TopNav isFaux={isFaux} onExitPreview={onExitPreview} />
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: 'clamp(3rem,6vw,6rem) clamp(1.5rem,4vw,3.5rem) 8rem' }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} style={{ marginBottom: '4rem' }}>
-          <p style={{ ...mono, fontSize: '10px', letterSpacing: '0.3em', color: 'var(--c-muted)', marginBottom: '1.5rem' }}>YOUR RITUAL PROFILE</p>
+          <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.3em', color: 'var(--c-muted)', marginBottom: '1.5rem' }}>YOUR RITUAL PROFILE</p>
           <h1 style={{ ...serif, fontStyle: 'italic', fontSize: 'clamp(48px,7vw,96px)', lineHeight: 0.95, color: 'var(--c-fg)' }}>
             Who is<br /><span style={{ color: 'var(--c-accent)' }}>{name}</span><br />becoming?
           </h1>
@@ -663,7 +663,7 @@ function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) {
         ].map(({ key, label, Comp }, i, arr) => (
           <motion.div key={key} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.7 }} style={{ marginBottom: '4rem' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '1.5rem', marginBottom: '2rem' }}>
-              <p style={{ ...mono, fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: APP[key].color, opacity: 0.7, width: '60px', flexShrink: 0 }}>{APP[key].sub}</p>
+              <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.3em', textTransform: 'uppercase', color: APP[key].color, opacity: 0.7, width: '60px', flexShrink: 0 }}>{APP[key].sub}</p>
               <h2 style={{ ...serif, fontStyle: 'italic', fontSize: 'clamp(26px,3vw,38px)', color: 'var(--c-fg)', lineHeight: 1 }}>{label}</h2>
             </div>
             <div style={{ paddingLeft: '76px' }}><Comp data={d[key] ?? {}} /></div>
@@ -671,8 +671,8 @@ function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) {
           </motion.div>
         ))}
         <div style={{ borderTop: '1px solid var(--c-border-1)', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          {!isFaux && <button onClick={retakeQuiz} style={{ ...mono, fontSize: '10px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>retake do the dash</button>}
-          <p style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)', letterSpacing: '0.08em', opacity: 0.35 }}>robin · ritualware suite</p>
+          {!isFaux && <button onClick={retakeQuiz} style={{ ...mono, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>retake do the dash</button>}
+          <p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)', letterSpacing: '0.08em', opacity: 0.35 }}>robin · ritualware suite</p>
         </div>
       </div>
     </main>
@@ -682,81 +682,81 @@ function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) {
 // ── Magazine sections ─────────────────────────────────────────────
 function MagStyle({ data }) {
   const { profile, looksCount } = data; const app = APP.ritualwear
-  if (!profile?.kibbe_type) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Take the Style Bible quiz to decode your body type, colour season, and wardrobe rules.</p><a href="https://wear.ritualware.app/quiz" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the Style Bible ↗</a></div>
+  if (!profile?.kibbe_type) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Take the Style Bible quiz to decode your body type, colour season, and wardrobe rules.</p><a href="https://wear.ritualware.app/quiz" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the Style Bible ↗</a></div>
   const emphasize = profile.body_notes?.emphasize ?? []; const minimize = profile.body_notes?.minimize ?? []
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <p style={{ ...serif, fontStyle: 'italic', fontSize: 'clamp(32px,4vw,54px)', color: 'var(--c-fg)', lineHeight: 1.1 }}>{fmt(profile.kibbe_type)}.{profile.color_season && <> <span style={{ color: app.color }}>{fmt(profile.color_season)} season.</span></>}</p>
       <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)' }}>{[profile.undertone && `${fmt(profile.undertone)} undertone`, profile.metal && `${fmt(profile.metal)} metals`, profile.formality && fmt(profile.formality)].filter(Boolean).join(' · ')}</p>
       {(emphasize.length > 0 || minimize.length > 0) && <div>{emphasize.length > 0 && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>Emphasize: <span style={{ color: app.color }}>{emphasize.map(fmt).join(', ')}</span></p>}{minimize.length > 0 && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)' }}>Minimize: {minimize.map(fmt).join(', ')}</p>}</div>}
-      {profile.style_words?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Style words</p><div>{profile.style_words.map(w => <Tag key={w} color={app.color}>{fmt(w)}</Tag>)}</div></div>}
-      {profile.era_references?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Era references</p><div>{profile.era_references.map(e => <Tag key={e} color={app.color}>{fmt(e)}</Tag>)}</div></div>}
-      {profile.palette?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Palette</p><div>{profile.palette.map(p => <Tag key={p} color={app.color}>{fmt(p)}</Tag>)}</div></div>}
-      {profile.fragrance_family?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Fragrance family</p><div>{profile.fragrance_family.map(f => <Tag key={f} color={app.color}>{fmt(f)}</Tag>)}</div></div>}
+      {profile.style_words?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Style words</p><div>{profile.style_words.map(w => <Tag key={w} color={app.color}>{fmt(w)}</Tag>)}</div></div>}
+      {profile.era_references?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Era references</p><div>{profile.era_references.map(e => <Tag key={e} color={app.color}>{fmt(e)}</Tag>)}</div></div>}
+      {profile.palette?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Palette</p><div>{profile.palette.map(p => <Tag key={p} color={app.color}>{fmt(p)}</Tag>)}</div></div>}
+      {profile.fragrance_family?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Fragrance family</p><div>{profile.fragrance_family.map(f => <Tag key={f} color={app.color}>{fmt(f)}</Tag>)}</div></div>}
       {[profile.trend_stance && `Trend: ${fmt(profile.trend_stance)}`, profile.heel_preference && `Heels: ${fmt(profile.heel_preference)}`, profile.jewelry_default && `Jewelry: ${fmt(profile.jewelry_default)}`].filter(Boolean).length > 0 && <p style={{ ...sans, fontSize: '13px', color: 'var(--c-muted2)' }}>{[profile.trend_stance && `Trend: ${fmt(profile.trend_stance)}`, profile.heel_preference && `Heels: ${fmt(profile.heel_preference)}`, profile.jewelry_default && `Jewelry: ${fmt(profile.jewelry_default)}`].filter(Boolean).join(' · ')}</p>}
-      {profile.designer_dna?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Designer DNA</p><p style={{ ...sans, fontSize: '15px', color: 'var(--c-muted2)', lineHeight: 1.7, fontStyle: 'italic' }}>{profile.designer_dna.join(' · ')}</p></div>}
-      {profile.fabrics?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Fabrics</p><p style={{ ...sans, fontSize: '15px', color: 'var(--c-muted2)', lineHeight: 1.7 }}>{profile.fabrics.join(' · ')}</p></div>}
-      {looksCount > 0 && <p style={{ ...mono, fontSize: '11px', color: 'var(--c-muted)', letterSpacing: '0.1em' }}>{looksCount} looks saved</p>}
-      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
+      {profile.designer_dna?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Designer DNA</p><p style={{ ...sans, fontSize: '18px', color: 'var(--c-muted2)', lineHeight: 1.7, fontStyle: 'italic' }}>{profile.designer_dna.join(' · ')}</p></div>}
+      {profile.fabrics?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Fabrics</p><p style={{ ...sans, fontSize: '18px', color: 'var(--c-muted2)', lineHeight: 1.7 }}>{profile.fabrics.join(' · ')}</p></div>}
+      {looksCount > 0 && <p style={{ ...mono, fontSize: '14px', color: 'var(--c-muted)', letterSpacing: '0.1em' }}>{looksCount} looks saved</p>}
+      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
     </div>
   )
 }
 function MagBeauty({ data }) {
   const { glowUp, styleFinder } = data; const app = APP.glowup; const r = glowUp?.result; const sv = r?.section_verdicts ?? {}
-  if (!glowUp && !styleFinder) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Run your Glow Up audit.</p><a href="https://glowup.ritualware.app/glow-up" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the audit ↗</a></div>
+  if (!glowUp && !styleFinder) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Run your Glow Up audit.</p><a href="https://glowup.ritualware.app/glow-up" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the audit ↗</a></div>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {r?.overall_tier && <><p style={{ ...serif, fontStyle: 'italic', fontSize: 'clamp(28px,3.5vw,46px)', color: 'var(--c-fg)', lineHeight: 1.1, textTransform: 'capitalize' }}>{fmt(r.overall_tier)}.</p>{r.headline && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.55 }}>{r.headline}</p>}{r.biggest_opportunity && <p style={{ ...sans, fontSize: '14px', color: app.color, lineHeight: 1.55 }}>{r.biggest_opportunity}</p>}</>}
-      {Object.keys(sv).length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.5rem' }}>Category scores</p><div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>{GLOW_CATS.map(k => { const e = sv[k]; if (!e?.score) return null; return <div key={k}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ ...sans, fontSize: '13px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{k}</span><span style={{ ...mono, fontSize: '10px', color: app.color }}>{e.score}/10</span></div><Bar pct={e.score * 10} color={app.color} />{e.verdict && <p style={{ ...sans, fontSize: '12px', color: 'var(--c-muted)', lineHeight: 1.5, marginTop: '2px' }}>{e.verdict}</p>}</div>})}</div></div>}
-      {r?.non_negotiables?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Non-negotiables</p>{r.non_negotiables.map((n, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {n}</p>)}</div>}
-      {r?.quick_wins?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Quick wins</p>{r.quick_wins.map((q, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)', lineHeight: 1.6 }}>✦ {q}</p>)}</div>}
+      {Object.keys(sv).length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.5rem' }}>Category scores</p><div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>{GLOW_CATS.map(k => { const e = sv[k]; if (!e?.score) return null; return <div key={k}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ ...sans, fontSize: '13px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{k}</span><span style={{ ...mono, fontSize: '13px', color: app.color }}>{e.score}/10</span></div><Bar pct={e.score * 10} color={app.color} />{e.verdict && <p style={{ ...sans, fontSize: '18px', color: 'var(--c-muted)', lineHeight: 1.5, marginTop: '2px' }}>{e.verdict}</p>}</div>})}</div></div>}
+      {r?.non_negotiables?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Non-negotiables</p>{r.non_negotiables.map((n, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {n}</p>)}</div>}
+      {r?.quick_wins?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Quick wins</p>{r.quick_wins.map((q, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)', lineHeight: 1.6 }}>✦ {q}</p>)}</div>}
       {r?.closing && <p style={{ ...serif, fontStyle: 'italic', fontSize: '18px', color: app.color, lineHeight: 1.4 }}>{r.closing}</p>}
-      {styleFinder?.archetype && <><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Style archetype</p><p style={{ ...display, fontSize: '22px', color: app.color, textTransform: 'capitalize' }}>{fmt(styleFinder.archetype)}</p>{styleFinder.result?.blind_spots?.length > 0 && <div>{styleFinder.result.blind_spots.map((b, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {b}</p>)}</div>}</>}
-      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
+      {styleFinder?.archetype && <><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Style archetype</p><p style={{ ...display, fontSize: '22px', color: app.color, textTransform: 'capitalize' }}>{fmt(styleFinder.archetype)}</p>{styleFinder.result?.blind_spots?.length > 0 && <div>{styleFinder.result.blind_spots.map((b, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {b}</p>)}</div>}</>}
+      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
     </div>
   )
 }
 function MagPlace({ data }) {
   const { neighborhood, burnout, reinvention, dating } = data; const app = APP.ritualwhere
-  if (!neighborhood) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Where do you actually belong?</p><a href="https://where.ritualware.app/neighborhood" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the neighborhood quiz ↗</a></div>
+  if (!neighborhood) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Where do you actually belong?</p><a href="https://where.ritualware.app/neighborhood" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the neighborhood quiz ↗</a></div>
   const dr = dating?.result || {}; const da = dating?.answers || {}
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <p style={{ ...serif, fontStyle: 'italic', fontSize: 'clamp(28px,3.5vw,46px)', color: 'var(--c-fg)', lineHeight: 1.1 }}>{fmt(neighborhood.top_match)}.</p>
-      {burnout?.burnout_type && <><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Burnout type</p><p style={{ ...display, fontSize: '20px', color: app.color, textTransform: 'capitalize' }}>{fmt(burnout.burnout_type)}</p>{burnout.severity != null && <><div style={{ display: 'flex', justifyContent: 'space-between' }}><p style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)' }}>severity{burnout.is_chronic ? ' · chronic' : ''}</p><p style={{ ...mono, fontSize: '10px', color: app.color }}>{burnout.severity}/10</p></div><Bar pct={burnout.severity * 10} color={app.color} /></>}{burnout.protocol?.summary && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6 }}>{burnout.protocol.summary}</p>}{burnout.protocol?.note && <p style={{ ...sans, fontSize: '13px', color: app.color, lineHeight: 1.55 }}>{burnout.protocol.note}</p>}{burnout.protocol?.immediate?.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.2em', color: app.color, marginBottom: '0.4rem' }}>Immediate actions</p>{burnout.protocol.immediate.map((a, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {a}</p>)}</div>}</>}
-      {reinvention && <><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Reinvention{reinvention.quarter ? ` · ${reinvention.quarter}` : ''}</p><p style={{ ...display, fontSize: '18px', color: app.color, textTransform: 'capitalize' }}>{fmt(reinvention.priority_area)}</p><div style={{ marginTop: '0.75rem' }}>{(reinvention.moves || []).map((m, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {m}</p>)}</div></>}
-      {dating && <><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Dating</p><div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}><div><p style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)', marginBottom: '2px' }}>GOAL</p><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{fmt(dating.dating_goal)}</p></div><div><p style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)', marginBottom: '2px' }}>PATTERN</p><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{fmt(dating.pattern)}</p></div>{da.scene && <div><p style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)', marginBottom: '2px' }}>SCENE</p><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{fmt(da.scene)}</p></div>}</div>{dr.framing && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: '0.5rem' }}>{dr.framing}</p>}{dating.main_strategy && <p style={{ ...sans, fontSize: '15px', color: app.color, lineHeight: 1.55, marginBottom: '0.5rem' }}>{dating.main_strategy}</p>}{dr.pattern_fix && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6, marginBottom: '0.5rem' }}>{dr.pattern_fix}</p>}{dr.cardinal_rule && <p style={{ ...serif, fontStyle: 'italic', fontSize: '16px', color: app.color, lineHeight: 1.4 }}>{dr.cardinal_rule}</p>}</>}
-      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
+      {burnout?.burnout_type && <><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Burnout type</p><p style={{ ...display, fontSize: '20px', color: app.color, textTransform: 'capitalize' }}>{fmt(burnout.burnout_type)}</p>{burnout.severity != null && <><div style={{ display: 'flex', justifyContent: 'space-between' }}><p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)' }}>severity{burnout.is_chronic ? ' · chronic' : ''}</p><p style={{ ...mono, fontSize: '13px', color: app.color }}>{burnout.severity}/10</p></div><Bar pct={burnout.severity * 10} color={app.color} /></>}{burnout.protocol?.summary && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6 }}>{burnout.protocol.summary}</p>}{burnout.protocol?.note && <p style={{ ...sans, fontSize: '13px', color: app.color, lineHeight: 1.55 }}>{burnout.protocol.note}</p>}{burnout.protocol?.immediate?.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.2em', color: app.color, marginBottom: '0.4rem' }}>Immediate actions</p>{burnout.protocol.immediate.map((a, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {a}</p>)}</div>}</>}
+      {reinvention && <><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Reinvention{reinvention.quarter ? ` · ${reinvention.quarter}` : ''}</p><p style={{ ...display, fontSize: '18px', color: app.color, textTransform: 'capitalize' }}>{fmt(reinvention.priority_area)}</p><div style={{ marginTop: '0.75rem' }}>{(reinvention.moves || []).map((m, i) => <p key={i} style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>— {m}</p>)}</div></>}
+      {dating && <><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Dating</p><div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}><div><p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)', marginBottom: '2px' }}>GOAL</p><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{fmt(dating.dating_goal)}</p></div><div><p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)', marginBottom: '2px' }}>PATTERN</p><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{fmt(dating.pattern)}</p></div>{da.scene && <div><p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)', marginBottom: '2px' }}>SCENE</p><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{fmt(da.scene)}</p></div>}</div>{dr.framing && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: '0.5rem' }}>{dr.framing}</p>}{dating.main_strategy && <p style={{ ...sans, fontSize: '18px', color: app.color, lineHeight: 1.55, marginBottom: '0.5rem' }}>{dating.main_strategy}</p>}{dr.pattern_fix && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', lineHeight: 1.6, marginBottom: '0.5rem' }}>{dr.pattern_fix}</p>}{dr.cardinal_rule && <p style={{ ...serif, fontStyle: 'italic', fontSize: '19px', color: app.color, lineHeight: 1.4 }}>{dr.cardinal_rule}</p>}</>}
+      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
     </div>
   )
 }
 function MagWealth({ data }) {
   const { firePlan, savings = [], fireQuizResults = {} } = data; const app = APP.ritualwealth
-  if (!firePlan) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Your number is out there.</p><a href="https://wealth.ritualware.app/quiz/fire_type" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the FIRE quiz ↗</a></div>
+  if (!firePlan) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Your number is out there.</p><a href="https://wealth.ritualware.app/quiz/fire_type" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Take the FIRE quiz ↗</a></div>
   const ftr = fireQuizResults.fire_type?.result; const rr = fireQuizResults.risk?.result; const ca = fireQuizResults.career?.answers ?? {}; const ha = fireQuizResults.home?.answers ?? {}
   const totalSaved = savings.reduce((s, b) => s + (parseFloat(b.current) || 0), 0); const totalTarget = savings.reduce((s, b) => s + (parseFloat(b.target) || 0), 0); const pct = totalTarget > 0 ? Math.min((totalSaved / totalTarget) * 100, 100) : null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <p style={{ ...serif, fontStyle: 'italic', fontSize: 'clamp(28px,3.5vw,46px)', color: 'var(--c-fg)', lineHeight: 1.1 }}>{fmt(firePlan.fire_type)}.</p>
-      <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap' }}>{firePlan.target_number && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Target</p><p style={{ ...display, fontSize: '24px', color: app.color }}>${Number(firePlan.target_number).toLocaleString()}</p></div>}{firePlan.target_age && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Age</p><p style={{ ...display, fontSize: '24px', color: 'var(--c-fg)' }}>{firePlan.target_age}</p></div>}</div>
+      <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap' }}>{firePlan.target_number && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Target</p><p style={{ ...display, fontSize: '24px', color: app.color }}>${Number(firePlan.target_number).toLocaleString()}</p></div>}{firePlan.target_age && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Age</p><p style={{ ...display, fontSize: '24px', color: 'var(--c-fg)' }}>{firePlan.target_age}</p></div>}</div>
       {ftr?.desc && <p style={{ ...sans, fontSize: '14px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6 }}>{ftr.desc}</p>}
-      {rr && <><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Risk profile</p><p style={{ ...display, fontSize: '18px', color: app.color }}>{RISK_LABELS[rr.risk_profile] || fmt(rr.risk_profile)}</p>{rr.allocation && <p style={{ ...mono, fontSize: '11px', color: 'var(--c-muted2)', marginTop: '4px' }}>{rr.allocation}</p>}{rr.desc && <p style={{ ...sans, fontSize: '13px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6 }}>{rr.desc}</p>}</>}
-      {pct != null && savings.length > 0 && <div><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color }}>Savings</p><p style={{ ...mono, fontSize: '10px', color: app.color }}>{Math.round(pct)}%</p></div><Bar pct={pct} color={app.color} height={3} /><div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>{savings.map(b => <div key={b.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '13px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{fmt(b.name)}</p><p style={{ ...mono, fontSize: '11px', color: app.color }}>${Number(b.current || 0).toLocaleString()} <span style={{ color: 'var(--c-muted)' }}>/ ${Number(b.target || 0).toLocaleString()}</span></p></div>)}</div></div>}
-      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
+      {rr && <><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Risk profile</p><p style={{ ...display, fontSize: '18px', color: app.color }}>{RISK_LABELS[rr.risk_profile] || fmt(rr.risk_profile)}</p>{rr.allocation && <p style={{ ...mono, fontSize: '14px', color: 'var(--c-muted2)', marginTop: '4px' }}>{rr.allocation}</p>}{rr.desc && <p style={{ ...sans, fontSize: '13px', color: 'var(--c-muted2)', fontStyle: 'italic', lineHeight: 1.6 }}>{rr.desc}</p>}</>}
+      {pct != null && savings.length > 0 && <div><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color }}>Savings</p><p style={{ ...mono, fontSize: '13px', color: app.color }}>{Math.round(pct)}%</p></div><Bar pct={pct} color={app.color} height={3} /><div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>{savings.map(b => <div key={b.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '13px', color: 'var(--c-muted2)', textTransform: 'capitalize' }}>{fmt(b.name)}</p><p style={{ ...mono, fontSize: '14px', color: app.color }}>${Number(b.current || 0).toLocaleString()} <span style={{ color: 'var(--c-muted)' }}>/ ${Number(b.target || 0).toLocaleString()}</span></p></div>)}</div></div>}
+      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
     </div>
   )
 }
 function MagStudio({ data }) {
   const { projects = [], goals = [], skills = [], circle = [] } = data; const app = APP.matelier
-  if (!projects.length && !goals.length && !skills.length) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Your creative life needs a home.</p><a href="https://studio.ritualware.app" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Open m'atelier ↗</a></div>
+  if (!projects.length && !goals.length && !skills.length) return <div><p style={{ ...serif, fontStyle: 'italic', fontSize: '20px', color: 'var(--c-muted2)', lineHeight: 1.6 }}>Your creative life needs a home.</p><a href="https://studio.ritualware.app" target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none' }}>Open m'atelier ↗</a></div>
   const doneGoals = goals.filter(g => g.is_complete); const openGoals = goals.filter(g => !g.is_complete)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {projects.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Active projects</p><div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>{projects.map(p => <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: app.color, flexShrink: 0 }} /><p style={{ ...sans, fontSize: '15px', color: 'var(--c-fg)', textTransform: 'capitalize' }}>{fmt(p.name)}</p></div>)}</div></div>}
-      {goals.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Goals</p><p style={{ ...serif, fontStyle: 'italic', fontSize: '22px', color: 'var(--c-fg)', lineHeight: 1.2 }}>{doneGoals.length} of {goals.length} complete.{openGoals.length > 0 && <span style={{ color: app.color }}> {openGoals.length} still becoming.</span>}</p><div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>{goals.map(g => <div key={g.title} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><span style={{ ...mono, fontSize: '11px', color: g.is_complete ? app.color : 'var(--c-muted)' }}>{g.is_complete ? '✓' : '○'}</span><p style={{ ...sans, fontSize: '14px', color: g.is_complete ? 'var(--c-muted2)' : 'var(--c-fg)', textDecoration: g.is_complete ? 'line-through' : 'none' }}>{g.title}</p></div>)}</div></div>}
-      {skills.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Skills</p><div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>{skills.map(s => <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{s.label}</p><div style={{ display: 'flex', gap: '0.5rem' }}><span style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)' }}>{s.category}</span><span style={{ ...mono, fontSize: '10px', color: app.color }}>{s.level}</span></div></div>)}</div></div>}
-      {circle.length > 0 && <div><p style={{ ...mono, fontSize: '10px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Circle</p><div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>{circle.map(c => <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{c.name}</p><span style={{ ...mono, fontSize: '10px', color: 'var(--c-muted)' }}>{fmt(c.role)}</span></div>)}</div></div>}
-      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '10px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
+      {projects.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Active projects</p><div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>{projects.map(p => <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: app.color, flexShrink: 0 }} /><p style={{ ...sans, fontSize: '18px', color: 'var(--c-fg)', textTransform: 'capitalize' }}>{fmt(p.name)}</p></div>)}</div></div>}
+      {goals.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Goals</p><p style={{ ...serif, fontStyle: 'italic', fontSize: '22px', color: 'var(--c-fg)', lineHeight: 1.2 }}>{doneGoals.length} of {goals.length} complete.{openGoals.length > 0 && <span style={{ color: app.color }}> {openGoals.length} still becoming.</span>}</p><div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>{goals.map(g => <div key={g.title} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><span style={{ ...mono, fontSize: '14px', color: g.is_complete ? app.color : 'var(--c-muted)' }}>{g.is_complete ? '✓' : '○'}</span><p style={{ ...sans, fontSize: '14px', color: g.is_complete ? 'var(--c-muted2)' : 'var(--c-fg)', textDecoration: g.is_complete ? 'line-through' : 'none' }}>{g.title}</p></div>)}</div></div>}
+      {skills.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Skills</p><div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>{skills.map(s => <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{s.label}</p><div style={{ display: 'flex', gap: '0.5rem' }}><span style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)' }}>{s.category}</span><span style={{ ...mono, fontSize: '13px', color: app.color }}>{s.level}</span></div></div>)}</div></div>}
+      {circle.length > 0 && <div><p style={{ ...mono, fontSize: '13px', letterSpacing: '0.28em', color: app.color, marginBottom: '0.4rem' }}>Circle</p><div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>{circle.map(c => <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ ...sans, fontSize: '14px', color: 'var(--c-fg)' }}>{c.name}</p><span style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)' }}>{fmt(c.role)}</span></div>)}</div></div>}
+      <a href={app.url} target="_blank" rel="noreferrer" style={{ ...mono, fontSize: '13px', letterSpacing: '0.18em', color: app.color, textDecoration: 'none', opacity: 0.7 }}>go deeper in {app.label} ↗</a>
     </div>
   )
 }
@@ -788,7 +788,7 @@ export default function UserDashboard({ user, onExitPreview = null, faux = false
     setModules(null)
   }
 
-  if (loading) return <main style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ ...mono, fontSize: '11px', letterSpacing: '0.25em', color: 'var(--c-muted)' }}>loading your profile…</p></main>
+  if (loading) return <main style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ ...mono, fontSize: '14px', letterSpacing: '0.25em', color: 'var(--c-muted)' }}>loading your profile…</p></main>
   if (!modules) return <DoTheDash user={user} onComplete={mods => setModules(mods)} />
 
   const name  = user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'you'

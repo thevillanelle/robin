@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import DoTheDash from './DoTheDash'
 import ThemeDropdown from '../components/ThemeDropdown'
 import { useThemeStore } from '../stores/useThemeStore'
+import { generateNarrative, loadNarrative } from '../lib/narrative'
 
 const serif   = { fontFamily: '"Cormorant Garamond","Playfair Display",Georgia,serif' }
 const display = { fontFamily: '"Playfair Display",Georgia,serif' }
@@ -176,15 +177,24 @@ const FAUX_DATA = {
 }
 
 // ── Data fetch ────────────────────────────────────────────────────
+// style_profiles columns are aliased below to match this UI's existing field
+// names (metal, formality, palette, designer_dna, fabrics) — the underlying
+// table uses metal_preference, lifestyle_formality, palette_loves,
+// designers_loved, fabric_loves. These previously didn't match at all, which
+// silently broke this query for every user (PostgREST 400s on unknown
+// columns) — the Ritualwear card has likely been empty for everyone.
+const STYLE_PROFILE_SELECT = 'kibbe_type,color_season,style_words,undertone,metal:metal_preference,formality:lifestyle_formality,palette:palette_loves,designer_dna:designers_loved,fabrics:fabric_loves,body_notes,era_references,trend_stance,heel_preference,fragrance_family,jewelry_default,lip_preference,nail_shape,never_wears,style_uniform,style_mistake'
+
 async function fetchModuleData(userId) {
   const [
-    styleProfile, savedLooks,
+    styleProfile, styleRules, savedLooks,
     glowUp, styleFinder,
     neighborhood, burnout, reinvention, dating,
     firePlan, savings, fireQuizResults,
     projects, goals, skills, circle,
   ] = await Promise.all([
-    supabase.from('style_profiles').select('kibbe_type,color_season,style_words,undertone,metal,formality,palette,designer_dna,fabrics,body_notes,era_references,trend_stance,heel_preference,fragrance_family,jewelry_default').eq('user_id', userId).maybeSingle(),
+    supabase.from('style_profiles').select(STYLE_PROFILE_SELECT).eq('user_id', userId).maybeSingle(),
+    supabase.from('style_rules').select('rule_type,rule_text,conditions').eq('user_id', userId).order('created_at', { ascending: false }),
     supabase.from('saved_looks').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('glow_up_results').select('result').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('style_finder_results').select('archetype,result').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -207,7 +217,7 @@ async function fetchModuleData(userId) {
   }
 
   return {
-    ritualwear:   { profile: styleProfile.data, looksCount: savedLooks.count ?? 0 },
+    ritualwear:   { profile: styleProfile.data, rules: styleRules.data ?? [], looksCount: savedLooks.count ?? 0 },
     glowup:       { glowUp: glowUp.data, styleFinder: styleFinder.data },
     ritualwhere:  { neighborhood: neighborhood.data, burnout: burnout.data, reinvention: reinvention.data, dating: dating.data },
     ritualwealth: { firePlan: firePlan.data, savings: savings.data ?? [], fireQuizResults: fireBySlug },
@@ -609,8 +619,30 @@ function UnsavedBanner({ onSave }) {
   )
 }
 
+function NarrativeSection({ narrative, generatingNarrative, narrativeError, onGenerateNarrative, isFaux }) {
+  return (
+    <div style={{ borderTop: '1px solid var(--c-border-1)', paddingTop: '2.5rem', marginTop: '2.5rem' }}>
+      <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.3em', color: 'var(--c-muted)', marginBottom: '1rem' }}>YOUR CASE STUDY</p>
+      {narrative ? (
+        <p style={{ ...serif, fontStyle: 'italic', fontSize: '19px', color: 'var(--c-fg)', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: '1.25rem' }}>{narrative}</p>
+      ) : (
+        <p style={{ ...serif, fontStyle: 'italic', fontSize: '17px', color: 'var(--c-muted2)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+          Everything the suite knows about you, written up as a single piece — not a list of stats, a read.
+        </p>
+      )}
+      {narrativeError && <p style={{ ...mono, fontSize: '13px', color: '#e87474', marginBottom: '1rem' }}>{narrativeError}</p>}
+      {!isFaux && (
+        <button onClick={onGenerateNarrative} disabled={generatingNarrative}
+          style={{ ...mono, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--c-bg)', background: 'var(--c-accent)', border: 'none', borderRadius: '4px', padding: '8px 18px', cursor: generatingNarrative ? 'default' : 'pointer', opacity: generatingNarrative ? 0.6 : 1 }}>
+          {generatingNarrative ? 'Writing…' : narrative ? 'Regenerate narrative ✦' : 'Generate narrative ✦'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── Dashboard view ────────────────────────────────────────────────
-function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, unsaved, onSave }) {
+function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, unsaved, onSave, narrative, generatingNarrative, narrativeError, onGenerateNarrative }) {
   const d = moduleData || {}
   const filled = [d.ritualwear?.profile?.kibbe_type, d.glowup?.glowUp || d.glowup?.styleFinder, d.ritualwhere?.neighborhood, d.ritualwealth?.firePlan, d.matelier?.projects?.length > 0 || d.matelier?.goals?.length > 0].filter(Boolean).length
   return (
@@ -641,6 +673,7 @@ function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, un
             <StudioCard data={d.matelier ?? {}} />
           </motion.div>
         </div>
+        <NarrativeSection narrative={narrative} generatingNarrative={generatingNarrative} narrativeError={narrativeError} onGenerateNarrative={onGenerateNarrative} isFaux={isFaux} />
         <div style={{ borderTop: '1px solid var(--c-border-1)', paddingTop: '2rem', marginTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           {!isFaux && <button onClick={retakeQuiz} style={{ ...mono, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>retake do the dash</button>}
           <p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)', letterSpacing: '0.08em', opacity: 0.4 }}>robin · ritualware suite</p>
@@ -651,7 +684,7 @@ function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, un
 }
 
 // ── Magazine view ─────────────────────────────────────────────────
-function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, unsaved, onSave }) {
+function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, unsaved, onSave, narrative, generatingNarrative, narrativeError, onGenerateNarrative }) {
   const d = moduleData || {}
   return (
     <main style={{ minHeight: '100vh', background: 'var(--c-bg)', color: 'var(--c-fg)' }}>
@@ -681,6 +714,7 @@ function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, uns
             {i < arr.length - 1 && <div style={{ height: '1px', background: 'var(--c-border-2)', margin: '2.5rem 0' }} />}
           </motion.div>
         ))}
+        <NarrativeSection narrative={narrative} generatingNarrative={generatingNarrative} narrativeError={narrativeError} onGenerateNarrative={onGenerateNarrative} isFaux={isFaux} />
         <div style={{ borderTop: '1px solid var(--c-border-1)', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           {!isFaux && <button onClick={retakeQuiz} style={{ ...mono, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--c-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>retake do the dash</button>}
           <p style={{ ...mono, fontSize: '13px', color: 'var(--c-muted)', letterSpacing: '0.08em', opacity: 0.35 }}>robin · ritualware suite</p>
@@ -778,14 +812,18 @@ export default function UserDashboard({ user, onExitPreview = null, faux = false
   const [moduleData, setModuleData] = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [unsaved,    setUnsaved]    = useState(false)
+  const [narrative,  setNarrative]  = useState(null)
+  const [generatingNarrative, setGeneratingNarrative] = useState(false)
+  const [narrativeError, setNarrativeError] = useState(null)
   const { view } = useThemeStore()
 
   useEffect(() => {
     if (faux) { setModules(['all']); setModuleData(FAUX_DATA); setLoading(false); return }
     async function load() {
-      const [config, data] = await Promise.all([
+      const [config, data, savedNarrative] = await Promise.all([
         supabase.from('robin_dashboard_config').select('modules').eq('user_id', user.id).maybeSingle(),
         fetchModuleData(user.id),
+        loadNarrative(user.id),
       ])
       // Arriving via a handoff from another suite app: show the real, already-fetched
       // data immediately rather than forcing Do The Dash first. `unsaved` tracks that
@@ -797,6 +835,7 @@ export default function UserDashboard({ user, onExitPreview = null, faux = false
         setModules(config.data?.modules ?? null)
       }
       setModuleData(data)
+      setNarrative(savedNarrative)
       setLoading(false)
     }
     load()
@@ -809,10 +848,27 @@ export default function UserDashboard({ user, onExitPreview = null, faux = false
     setModules(null)
   }
 
+  const handleGenerateNarrative = async () => {
+    if (!moduleData) return
+    setGeneratingNarrative(true)
+    setNarrativeError(null)
+    try {
+      const result = await generateNarrative(moduleData)
+      setNarrative(result)
+    } catch (e) {
+      setNarrativeError(e.message)
+    } finally {
+      setGeneratingNarrative(false)
+    }
+  }
+
   if (loading) return <main style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ ...mono, fontSize: '14px', letterSpacing: '0.25em', color: 'var(--c-muted)' }}>loading your profile…</p></main>
   if (!modules) return <DoTheDash user={user} onComplete={mods => { setUnsaved(false); setModules(mods) }} />
 
   const name  = user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'you'
-  const props = { moduleData, name, isFaux: faux, onExitPreview, retakeQuiz, unsaved, onSave: () => setModules(null) }
+  const props = {
+    moduleData, name, isFaux: faux, onExitPreview, retakeQuiz, unsaved, onSave: () => setModules(null),
+    narrative, generatingNarrative, narrativeError, onGenerateNarrative: handleGenerateNarrative,
+  }
   return view === 'magazine' ? <MagazineView {...props} /> : <DashboardView {...props} />
 }

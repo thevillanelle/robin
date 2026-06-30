@@ -600,13 +600,23 @@ function TopNav({ isFaux, onExitPreview }) {
   )
 }
 
+function UnsavedBanner({ onSave }) {
+  return (
+    <div style={{ background: 'var(--c-accent)', color: 'var(--c-bg)', padding: '0.6rem clamp(1.5rem,4vw,3.5rem)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+      <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.08em' }}>This is a live preview pulled from your Ritualware apps — nothing's saved yet.</p>
+      <button onClick={onSave} style={{ ...mono, fontSize: '13px', letterSpacing: '0.12em', color: 'var(--c-bg)', background: 'none', border: '1px solid var(--c-bg)', borderRadius: '4px', padding: '3px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Do The Dash to save it →</button>
+    </div>
+  )
+}
+
 // ── Dashboard view ────────────────────────────────────────────────
-function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) {
+function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, unsaved, onSave }) {
   const d = moduleData || {}
   const filled = [d.ritualwear?.profile?.kibbe_type, d.glowup?.glowUp || d.glowup?.styleFinder, d.ritualwhere?.neighborhood, d.ritualwealth?.firePlan, d.matelier?.projects?.length > 0 || d.matelier?.goals?.length > 0].filter(Boolean).length
   return (
     <main style={{ minHeight: '100vh', background: 'var(--c-bg)', color: 'var(--c-fg)' }}>
       <TopNav isFaux={isFaux} onExitPreview={onExitPreview} />
+      {unsaved && <UnsavedBanner onSave={onSave} />}
       <div style={{ padding: 'clamp(2rem,4vw,4rem) clamp(1.5rem,4vw,3rem) 6rem' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} style={{ marginBottom: '2rem' }}>
           <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.3em', color: 'var(--c-muted)', marginBottom: '0.6rem' }}>YOUR RITUAL PROFILE</p>
@@ -641,11 +651,12 @@ function DashboardView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) 
 }
 
 // ── Magazine view ─────────────────────────────────────────────────
-function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz }) {
+function MagazineView({ moduleData, name, isFaux, onExitPreview, retakeQuiz, unsaved, onSave }) {
   const d = moduleData || {}
   return (
     <main style={{ minHeight: '100vh', background: 'var(--c-bg)', color: 'var(--c-fg)' }}>
       <TopNav isFaux={isFaux} onExitPreview={onExitPreview} />
+      {unsaved && <UnsavedBanner onSave={onSave} />}
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: 'clamp(3rem,6vw,6rem) clamp(1.5rem,4vw,3.5rem) 8rem' }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} style={{ marginBottom: '4rem' }}>
           <p style={{ ...mono, fontSize: '13px', letterSpacing: '0.3em', color: 'var(--c-muted)', marginBottom: '1.5rem' }}>YOUR RITUAL PROFILE</p>
@@ -762,10 +773,11 @@ function MagStudio({ data }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────
-export default function UserDashboard({ user, onExitPreview = null, faux = false }) {
+export default function UserDashboard({ user, onExitPreview = null, faux = false, skipGate = false }) {
   const [modules,    setModules]    = useState(null)
   const [moduleData, setModuleData] = useState(null)
   const [loading,    setLoading]    = useState(true)
+  const [unsaved,    setUnsaved]    = useState(false)
   const { view } = useThemeStore()
 
   useEffect(() => {
@@ -775,23 +787,32 @@ export default function UserDashboard({ user, onExitPreview = null, faux = false
         supabase.from('robin_dashboard_config').select('modules').eq('user_id', user.id).maybeSingle(),
         fetchModuleData(user.id),
       ])
-      setModules(config.data?.modules ?? null)
+      // Arriving via a handoff from another suite app: show the real, already-fetched
+      // data immediately rather than forcing Do The Dash first. `unsaved` tracks that
+      // this view isn't backed by a saved robin_dashboard_config yet.
+      if (!config.data && skipGate) {
+        setModules(['all'])
+        setUnsaved(true)
+      } else {
+        setModules(config.data?.modules ?? null)
+      }
       setModuleData(data)
       setLoading(false)
     }
     load()
-  }, [user.id, faux])
+  }, [user.id, faux, skipGate])
 
   const retakeQuiz = async () => {
     await supabase.from('robin_dashboard_config').delete().eq('user_id', user.id)
     await supabase.from('robin_quiz_results').delete().eq('user_id', user.id)
+    setUnsaved(false)
     setModules(null)
   }
 
   if (loading) return <main style={{ minHeight: '100vh', background: 'var(--c-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ ...mono, fontSize: '14px', letterSpacing: '0.25em', color: 'var(--c-muted)' }}>loading your profile…</p></main>
-  if (!modules) return <DoTheDash user={user} onComplete={mods => setModules(mods)} />
+  if (!modules) return <DoTheDash user={user} onComplete={mods => { setUnsaved(false); setModules(mods) }} />
 
   const name  = user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'you'
-  const props = { moduleData, name, isFaux: faux, onExitPreview, retakeQuiz }
+  const props = { moduleData, name, isFaux: faux, onExitPreview, retakeQuiz, unsaved, onSave: () => setModules(null) }
   return view === 'magazine' ? <MagazineView {...props} /> : <DashboardView {...props} />
 }

@@ -579,6 +579,10 @@ export default function Robin() {
 
   const [previewUser,  setPreviewUser]  = useState(false)
   const [fauxProfile,  setFauxProfile]  = useState(false)
+  // Set by a sibling app handing off an authenticated session (see lib/robinHandoff in
+  // the other suite apps) — the access/refresh tokens themselves travel in the URL hash,
+  // which the Supabase client (detectSessionInUrl: true) reads and clears on its own.
+  const [isHandoff]                     = useState(() => new URLSearchParams(window.location.search).get('handoff') === '1')
 
   // ── Gates ──────────────────────────────────────────────────
   if (authLoading) return (
@@ -603,6 +607,7 @@ export default function Robin() {
     <UserDashboard
       user={user}
       faux={fauxProfile && user.email === ADMIN_EMAIL}
+      skipGate={isHandoff}
       onExitPreview={(previewUser || fauxProfile) ? () => { setPreviewUser(false); setFauxProfile(false) } : null}
     />
   )

@@ -490,7 +490,7 @@ function WaitlistPanel() {
     if (!vilecorpSupabase) return
     vilecorpSupabase
       .from('waitlist')
-      .select('id, email, list, created_at')
+      .select('id, email, first_name, last_name, fun_question, fun_answer, list, created_at')
       .order('created_at', { ascending: false })
       .then(({ data }) => setEntries(data ?? []))
   }, [])
@@ -539,15 +539,28 @@ function WaitlistPanel() {
                 {copied === list ? '✓ copied' : 'copy emails'}
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              {group.map(entry => (
-                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'var(--c-surface-2)', borderRadius: '4px', border: '1px solid var(--c-border-1)' }}>
-                  <span style={{ ...mono, fontSize: '0.68rem', color: 'var(--c-fg)' }}>{entry.email}</span>
-                  <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-dim)' }}>
-                    {entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                  </span>
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {group.map(entry => {
+                const name = [entry.first_name, entry.last_name].filter(Boolean).join(' ')
+                return (
+                  <div key={entry.id} style={{ padding: '0.6rem 0.75rem', background: 'var(--c-surface-2)', borderRadius: '4px', border: '1px solid var(--c-border-1)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: name || entry.fun_question ? '0.3rem' : 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                        {name && <span style={{ ...sans, fontSize: '0.75rem', color: 'var(--c-fg)', fontWeight: 500 }}>{name}</span>}
+                        <span style={{ ...mono, fontSize: '0.62rem', color: name ? 'var(--c-muted)' : 'var(--c-fg)' }}>{entry.email}</span>
+                      </div>
+                      <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-dim)', flexShrink: 0, marginLeft: '0.75rem' }}>
+                        {entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                      </span>
+                    </div>
+                    {entry.fun_question && (
+                      <p style={{ ...sans, fontSize: '0.62rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>
+                        {entry.fun_question} <span style={{ color: GOLD, fontStyle: 'normal' }}>→ {entry.fun_answer || '—'}</span>
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )

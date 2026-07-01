@@ -3,19 +3,29 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/useAuthStore'
 import { supabase } from '../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import ThemeDropdown from '../components/ThemeDropdown'
 import UserDashboard from './UserDashboard'
+
+const vilecorpSupabase = (() => {
+  const url = import.meta.env.VITE_VILECORP_SUPABASE_URL
+  const key = import.meta.env.VITE_VILECORP_SUPABASE_ANON_KEY
+  return url && key ? createClient(url, key, { auth: { persistSession: false } }) : null
+})()
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 const MIN_COHORT  = 50
 
 const SERVICES = [
-  { name: 'Ritualware',   sub: 'marketing',  url: 'https://www.ritualware.app/health.json',      route: '/app/vile' },
-  { name: 'Ritualwear',   sub: 'oracle',      url: 'https://wear.ritualware.app/health.json',    route: '/app/wear' },
-  { name: 'Glow Up',      sub: 'pyramid',     url: 'https://glowup.ritualware.app/health.json',  route: '/app/glowup' },
-  { name: 'Ritualwhere?', sub: 'map',         url: 'https://where.ritualware.app/health.json',   route: '/app/where' },
-  { name: "m'atelier",    sub: 'studio',      url: 'https://studio.ritualware.app/health.json',  route: '/app/atelier' },
-  { name: 'Ritualwealth', sub: 'fire',        url: 'https://wealth.ritualware.app/health.json',  route: '/app/wealth' },
+  { name: 'Ritualware',    sub: 'marketing',    url: 'https://www.ritualware.app/health.json',                    route: '/app/vile' },
+  { name: 'Ritualwear',    sub: 'oracle',       url: 'https://wear.ritualware.app/health.json',                   route: '/app/wear' },
+  { name: 'Glow Up',       sub: 'pyramid',      url: 'https://glowup.ritualware.app/health.json',                 route: '/app/glowup' },
+  { name: 'Ritualwhere?',  sub: 'map',          url: 'https://where.ritualware.app/health.json',                  route: '/app/where' },
+  { name: "m'atelier",     sub: 'studio',       url: 'https://studio.ritualware.app/health.json',                 route: '/app/atelier' },
+  { name: 'Ritualwealth',  sub: 'fire',         url: 'https://wealth.ritualware.app/health.json',                 route: '/app/wealth' },
+  { name: 'ATLAS',         sub: 'intelligence', url: 'https://atlas.ritualware.app/health.json',                  href: 'https://atlas.ritualware.app' },
+  { name: "Sal's Library", sub: 'archive',      url: 'https://library.ritualware.app/health.json',               href: 'https://library.ritualware.app' },
+  { name: 'EQX Doubles',   sub: 'fitness',      url: 'https://thevillanelle.github.io/eqx-doubles/index.html',   href: 'https://thevillanelle.github.io/eqx-doubles/index.html' },
 ]
 
 const LOG_LIMIT = 60
@@ -26,8 +36,12 @@ async function checkService(svc) {
     const res = await fetch(svc.url, { cache: 'no-store' })
     const ms = Math.round(performance.now() - t0)
     if (!res.ok) return { ...svc, status: 'down', ms, code: res.status }
-    const json = await res.json()
-    return { ...svc, status: json.status === 'ok' ? 'up' : 'degraded', ms }
+    try {
+      const json = await res.json()
+      return { ...svc, status: json.status === 'ok' ? 'up' : 'degraded', ms }
+    } catch {
+      return { ...svc, status: 'up', ms }
+    }
   } catch (err) {
     const ms = Math.round(performance.now() - t0)
     console.error(`[robin] health check failed for ${svc.name}:`, err)
@@ -90,6 +104,8 @@ function ServiceTile({ svc, i, selected, onSelect, history }) {
   const handleClick = () => {
     if (selected && svc.route) {
       navigate(svc.route)
+    } else if (selected && svc.href) {
+      window.open(svc.href, '_blank', 'noopener noreferrer')
     } else {
       onSelect(svc)
     }
@@ -421,6 +437,96 @@ function GrowthChart({ data }) {
   )
 }
 
+// ── Ongoing Campaigns ────────────────────────────────────────────
+
+const GOLD = '#C4A96E'
+
+function OngoingCampaigns() {
+  const [entries, setEntries] = useState(null)
+  const [copied, setCopied]   = useState('')
+
+  useEffect(() => {
+    if (!vilecorpSupabase) return
+    vilecorpSupabase
+      .from('waitlist')
+      .select('id, email, first_name, last_name, fun_question, fun_answer, list, created_at')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setEntries(data ?? []))
+  }, [])
+
+  function copyEmails(list) {
+    const emails = (entries || []).filter(e => e.list === list).map(e => e.email).join(', ')
+    navigator.clipboard.writeText(emails)
+    setCopied(list)
+    setTimeout(() => setCopied(''), 2000)
+  }
+
+  const mono  = { fontFamily: 'monospace' }
+  const sans  = { fontFamily: '"DM Sans", sans-serif' }
+  const serif = { fontFamily: '"Playfair Display", Georgia, serif' }
+
+  if (!vilecorpSupabase) return (
+    <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)' }}>
+      add VITE_VILECORP_SUPABASE_URL + VITE_VILECORP_SUPABASE_ANON_KEY to load campaigns
+    </p>
+  )
+
+  if (!entries) return <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)' }}>loading…</p>
+
+  if (entries.length === 0) return (
+    <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>no signups yet.</p>
+  )
+
+  const lists = [...new Set(entries.map(e => e.list))].sort()
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {lists.map(list => {
+        const group = entries.filter(e => e.list === list)
+        return (
+          <div key={list}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <p style={{ ...mono, fontSize: '0.52rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: GOLD }}>{list}</p>
+                <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-dim)' }}>{group.length} {group.length === 1 ? 'entry' : 'entries'}</span>
+              </div>
+              <button
+                onClick={() => copyEmails(list)}
+                style={{ ...mono, fontSize: '0.5rem', color: copied === list ? 'var(--c-up)' : 'var(--c-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.1em' }}
+              >
+                {copied === list ? '✓ copied' : 'copy emails'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {group.map(entry => {
+                const name = [entry.first_name, entry.last_name].filter(Boolean).join(' ')
+                return (
+                  <div key={entry.id} style={{ padding: '0.6rem 0.75rem', background: 'var(--c-surface-3)', borderRadius: '4px', border: '1px solid var(--c-border-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (name || entry.fun_question) ? '0.3rem' : 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                        {name && <span style={{ ...sans, fontSize: '0.75rem', color: 'var(--c-fg)', fontWeight: 500 }}>{name}</span>}
+                        <span style={{ ...mono, fontSize: '0.62rem', color: name ? 'var(--c-muted)' : 'var(--c-fg)' }}>{entry.email}</span>
+                      </div>
+                      <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-dim)', flexShrink: 0, marginLeft: '0.75rem' }}>
+                        {entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                      </span>
+                    </div>
+                    {entry.fun_question && (
+                      <p style={{ ...sans, fontSize: '0.62rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>
+                        {entry.fun_question} <span style={{ color: GOLD, fontStyle: 'normal' }}>→ {entry.fun_answer || '—'}</span>
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function Panel({ title, children, span = 1 }) {
   return (
     <motion.div
@@ -668,6 +774,17 @@ export default function Robin() {
             onSelectSvc={svc => setSelectedSvc(prev => prev?.url === svc.url ? null : svc)}
           />
         </div>
+
+        {/* Ongoing Campaigns */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          style={{ marginBottom: '2rem', padding: '2rem', background: 'var(--c-surface-1)', borderRadius: '1rem', border: '1px solid var(--c-border-1)' }}
+        >
+          <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '1.25rem' }}>
+            ongoing campaigns // active signups
+          </p>
+          <OngoingCampaigns />
+        </motion.div>
 
         {/* Platform Analytics header */}
         <motion.div

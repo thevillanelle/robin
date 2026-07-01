@@ -23,9 +23,9 @@ const SERVICES = [
   { name: 'Ritualwhere?',  sub: 'map',          url: 'https://where.ritualware.app/health.json',                  route: '/app/where' },
   { name: "m'atelier",     sub: 'studio',       url: 'https://studio.ritualware.app/health.json',                 route: '/app/atelier' },
   { name: 'Ritualwealth',  sub: 'fire',         url: 'https://wealth.ritualware.app/health.json',                 route: '/app/wealth' },
-  { name: 'ATLAS',         sub: 'intelligence', url: 'https://atlas.ritualware.app/health.json',                  href: 'https://atlas.ritualware.app' },
-  { name: "Sal's Library", sub: 'archive',      url: 'https://library.ritualware.app/health.json',               href: 'https://library.ritualware.app' },
-  { name: 'EQX Doubles',   sub: 'fitness',      url: 'https://thevillanelle.github.io/eqx-doubles/index.html',   href: 'https://thevillanelle.github.io/eqx-doubles/index.html' },
+  { name: 'ATLAS',         sub: 'intelligence', url: 'https://atlas.ritualware.app/health.json',                           href: 'https://atlas.ritualware.app' },
+  { name: "Sal's Library", sub: 'archive',      url: 'https://library.ritualware.app/health.json',                         href: 'https://library.ritualware.app' },
+  { name: 'EQX Doubles',   sub: 'fitness',      url: 'https://thevillanelle.github.io/eqx-doubles/health.json',            href: 'https://thevillanelle.github.io/eqx-doubles/index.html' },
 ]
 
 const LOG_LIMIT = 60

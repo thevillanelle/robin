@@ -24,6 +24,7 @@ const PLATFORMS = [
   { id: 'tiktok',    label: 'TikTok',      color: '#ffffff',            sub: 'audience acquisition' },
   { id: 'youtube',   label: 'YouTube',     color: '#C4A96E',            sub: 'long-form depth' },
   { id: 'instagram', label: 'Instagram',   color: '#C4717A',            sub: 'aesthetic portfolio' },
+  { id: 'pinterest', label: 'Pinterest',   color: '#E07C7C',            sub: 'visual discovery' },
   { id: 'substack',  label: 'Substack',    color: '#A89BC4',            sub: 'home base' },
   { id: 'twitter',   label: 'X / Twitter', color: 'var(--c-muted2)',    sub: 'real-time reach' },
 ]
@@ -179,7 +180,7 @@ function Panel({ title, children, style, accent: accentOverride }) {
 
 function EmpireNumbers({ stats, onChange }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem' }}>
       {PLATFORMS.map(p => (
         <div key={p.id} style={{ padding: '1.25rem', background: 'var(--c-surface-3)', borderRadius: '0.75rem', border: '1px solid var(--c-border-3)' }}>
           <p style={{ ...mono, fontSize: '0.52rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: p.color, marginBottom: '0.2rem' }}>{p.label}</p>
@@ -569,6 +570,349 @@ function WaitlistPanel() {
   )
 }
 
+// ── Platform analytics API helpers ───────────────────────────────
+
+async function fetchYouTubeStats(apiKey, channelId) {
+  const base = 'https://www.googleapis.com/youtube/v3'
+  const ch = await fetch(`${base}/channels?part=statistics,snippet&id=${encodeURIComponent(channelId)}&key=${apiKey}`)
+  if (!ch.ok) throw new Error(`YouTube API error ${ch.status}`)
+  const chData = await ch.json()
+  if (chData.error) throw new Error(chData.error.message)
+  const channel = chData.items?.[0]
+  if (!channel) throw new Error('channel not found — check your channel ID')
+
+  const sr = await fetch(`${base}/search?part=id,snippet&channelId=${encodeURIComponent(channelId)}&order=date&maxResults=10&type=video&key=${apiKey}`)
+  const srData = sr.ok ? await sr.json() : { items: [] }
+  const videoIds = (srData.items ?? []).map(i => i.id?.videoId).filter(Boolean).join(',')
+
+  let videos = []
+  if (videoIds) {
+    const vr = await fetch(`${base}/videos?part=statistics,snippet&id=${videoIds}&key=${apiKey}`)
+    const vrData = vr.ok ? await vr.json() : { items: [] }
+    videos = (vrData.items ?? []).map(v => ({
+      id:          v.id,
+      title:       v.snippet?.title       ?? '',
+      publishedAt: v.snippet?.publishedAt,
+      views:       parseInt(v.statistics?.viewCount    ?? '0'),
+      likes:       parseInt(v.statistics?.likeCount    ?? '0'),
+      comments:    parseInt(v.statistics?.commentCount ?? '0'),
+    }))
+  }
+
+  return {
+    channelTitle: channel.snippet?.title ?? '',
+    subscribers:  parseInt(channel.statistics?.subscriberCount ?? '0'),
+    totalViews:   parseInt(channel.statistics?.viewCount       ?? '0'),
+    videoCount:   parseInt(channel.statistics?.videoCount      ?? '0'),
+    videos,
+  }
+}
+
+async function fetchPinterestAccount(token) {
+  const res = await fetch('https://api.pinterest.com/v5/user_account', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(`Pinterest API error ${res.status}`)
+  const d = await res.json()
+  return {
+    username:     d.username        ?? '',
+    followers:    d.follower_count  ?? 0,
+    following:    d.following_count ?? 0,
+    pins:         d.pin_count       ?? 0,
+    boards:       d.board_count     ?? 0,
+    monthlyViews: d.monthly_views   ?? null,
+  }
+}
+
+// ── Platform analytics components ─────────────────────────────────
+
+const PINTEREST_ROSE = '#E07C7C'
+const PLAT_TABS = ['youtube', 'pinterest', 'tiktok']
+
+function ApiStatTile({ label, value, color }) {
+  return (
+    <div style={{ padding: '1rem', background: 'var(--c-surface-2)', borderRadius: '0.5rem', border: '1px solid var(--c-border-2)' }}>
+      <p style={{ ...mono, fontSize: '0.48rem', letterSpacing: '0.15em', color: color ?? GOLD, textTransform: 'uppercase', marginBottom: '0.3rem' }}>{label}</p>
+      <p style={{ ...serif, fontSize: '1.6rem', color: 'var(--c-fg)', lineHeight: 1 }}>{value}</p>
+    </div>
+  )
+}
+
+function ApiPanelHeader({ name, subtitle, lastFetch, loading, onRefresh, onSetup, refreshColor }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+      {subtitle && <p style={{ ...serif, fontSize: '0.85rem', color: 'var(--c-muted)' }}>{subtitle}</p>}
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto' }}>
+        {lastFetch && <span style={{ ...mono, fontSize: '0.45rem', color: 'var(--c-dim)' }}>updated {timeAgo(new Date(lastFetch).toISOString())}</span>}
+        <button onClick={onRefresh} disabled={loading}
+          style={{ ...mono, fontSize: '0.52rem', color: loading ? 'var(--c-dim)' : (refreshColor ?? GOLD), background: 'none', border: `1px solid ${loading ? 'var(--c-border-2)' : (refreshColor ?? GOLD)}`, borderRadius: '4px', padding: '0.3rem 0.75rem', cursor: loading ? 'default' : 'pointer', transition: 'all 0.15s' }}
+        >{loading ? 'fetching…' : '↻ refresh'}</button>
+        {onSetup && (
+          <button onClick={onSetup}
+            style={{ ...mono, fontSize: '0.52rem', color: 'var(--c-dim)', background: 'none', border: '1px solid var(--c-border-2)', borderRadius: '4px', padding: '0.3rem 0.6rem', cursor: 'pointer' }}
+          >⚙</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SkeletonRow({ cols, height = '80px' }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '0.75rem' }}>
+      {Array.from({ length: cols }, (_, i) => (
+        <div key={i} style={{ height, background: 'var(--c-surface-2)', borderRadius: '0.5rem', opacity: 0.25 + i * 0.08 }} />
+      ))}
+    </div>
+  )
+}
+
+function YouTubePanel({ onSubscriberSync }) {
+  const lsKey  = useCallback(() => { try { return localStorage.getItem('vile_yt_api_key')    ?? '' } catch { return '' } }, [])
+  const lsCh   = useCallback(() => { try { return localStorage.getItem('vile_yt_channel_id') ?? '' } catch { return '' } }, [])
+
+  const [apiKey,    setApiKey]    = useState(() => { try { return localStorage.getItem('vile_yt_api_key')    ?? '' } catch { return '' } })
+  const [channelId, setChannelId] = useState(() => { try { return localStorage.getItem('vile_yt_channel_id') ?? '' } catch { return '' } })
+  const [data,      setData]      = useState(null)
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState(null)
+  const [lastFetch, setLastFetch] = useState(null)
+  const [setup,     setSetup]     = useState(() => !localStorage.getItem('vile_yt_api_key'))
+
+  const refresh = useCallback(async (key, ch) => {
+    if (!key || !ch) return
+    setLoading(true); setError(null)
+    try {
+      const stats = await fetchYouTubeStats(key, ch)
+      setData(stats)
+      setLastFetch(Date.now())
+      onSubscriberSync?.(stats.subscribers)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [onSubscriberSync])
+
+  useEffect(() => {
+    const k = lsKey(); const c = lsCh()
+    if (k && c) refresh(k, c)
+  }, [])
+
+  const saveSetup = () => {
+    try { localStorage.setItem('vile_yt_api_key', apiKey); localStorage.setItem('vile_yt_channel_id', channelId) } catch {}
+    setSetup(false)
+    refresh(apiKey, channelId)
+  }
+
+  if (setup || !lsKey()) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '500px' }}>
+      <p style={{ ...mono, fontSize: '0.58rem', color: 'var(--c-muted)', lineHeight: 1.7 }}>
+        get a free key at <span style={{ color: GOLD }}>console.cloud.google.com</span> → enable YouTube Data API v3. your channel ID is in YouTube Studio → Settings → Channel → Advanced.
+      </p>
+      <input value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="API key (AIza...)"
+        style={{ background: 'var(--c-surface-2)', border: '1px solid var(--c-border-2)', borderRadius: '6px', outline: 'none', ...mono, fontSize: '0.65rem', color: 'var(--c-fg)', padding: '0.55rem 0.75rem' }}
+      />
+      <input value={channelId} onChange={e => setChannelId(e.target.value)} placeholder="Channel ID (UC...)"
+        style={{ background: 'var(--c-surface-2)', border: '1px solid var(--c-border-2)', borderRadius: '6px', outline: 'none', ...mono, fontSize: '0.65rem', color: 'var(--c-fg)', padding: '0.55rem 0.75rem' }}
+      />
+      <button onClick={saveSetup} disabled={!apiKey || !channelId}
+        style={{ ...mono, fontSize: '0.58rem', color: GOLD, background: 'none', border: `1px solid ${GOLD}`, borderRadius: '4px', padding: '0.5rem 1.25rem', cursor: 'pointer', alignSelf: 'flex-start', opacity: (!apiKey || !channelId) ? 0.4 : 1 }}
+      >connect youtube</button>
+    </div>
+  )
+
+  return (
+    <div>
+      <ApiPanelHeader
+        subtitle={data?.channelTitle}
+        lastFetch={lastFetch}
+        loading={loading}
+        onRefresh={() => refresh(lsKey(), lsCh())}
+        onSetup={() => setSetup(true)}
+        refreshColor={GOLD}
+      />
+      {error && <p style={{ ...mono, fontSize: '0.6rem', color: '#E87171', marginBottom: '0.75rem' }}>{error}</p>}
+      {loading && !data
+        ? <SkeletonRow cols={3} />
+        : data
+        ? (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <ApiStatTile label="subscribers" value={fmtFollowers(data.subscribers)} color={GOLD} />
+              <ApiStatTile label="total views"  value={fmtFollowers(data.totalViews)}  color={GOLD} />
+              <ApiStatTile label="videos"       value={data.videoCount.toLocaleString()} color={GOLD} />
+            </div>
+            {data.videos.length > 0 && (
+              <>
+                <p style={{ ...mono, fontSize: '0.48rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--c-dim)', marginBottom: '0.5rem' }}>recent videos</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', maxHeight: '300px', overflowY: 'auto' }}>
+                  {data.videos.map(v => (
+                    <div key={v.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 60px 68px 110px', gap: '0.75rem', alignItems: 'center', padding: '0.55rem 0.75rem', background: 'var(--c-surface-2)', borderRadius: '4px', border: '1px solid var(--c-border-1)' }}>
+                      <p style={{ ...sans, fontSize: '0.72rem', color: 'var(--c-fg)', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{v.title}</p>
+                      <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-muted)', textAlign: 'right' }}>{fmtFollowers(v.views)} views</span>
+                      <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-dim)',   textAlign: 'right' }}>{fmtFollowers(v.likes)} ♥</span>
+                      <span style={{ ...mono, fontSize: '0.55rem', color: 'var(--c-dim)',   textAlign: 'right' }}>{fmtFollowers(v.comments)} 💬</span>
+                      <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-dim)',   textAlign: 'right' }}>
+                        {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>no data — click refresh to load</p>
+        )
+      }
+    </div>
+  )
+}
+
+function PinterestPanel({ onFollowerSync }) {
+  const lsTok = useCallback(() => { try { return localStorage.getItem('vile_pinterest_token') ?? '' } catch { return '' } }, [])
+
+  const [token,     setToken]     = useState(() => { try { return localStorage.getItem('vile_pinterest_token') ?? '' } catch { return '' } })
+  const [data,      setData]      = useState(null)
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState(null)
+  const [lastFetch, setLastFetch] = useState(null)
+  const [setup,     setSetup]     = useState(() => !localStorage.getItem('vile_pinterest_token'))
+
+  const refresh = useCallback(async (tok) => {
+    if (!tok) return
+    setLoading(true); setError(null)
+    try {
+      const stats = await fetchPinterestAccount(tok)
+      setData(stats)
+      setLastFetch(Date.now())
+      onFollowerSync?.(stats.followers)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [onFollowerSync])
+
+  useEffect(() => {
+    const t = lsTok()
+    if (t) refresh(t)
+  }, [])
+
+  const saveSetup = () => {
+    try { localStorage.setItem('vile_pinterest_token', token) } catch {}
+    setSetup(false)
+    refresh(token)
+  }
+
+  if (setup || !lsTok()) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '500px' }}>
+      <p style={{ ...mono, fontSize: '0.58rem', color: 'var(--c-muted)', lineHeight: 1.7 }}>
+        create a developer app at <span style={{ color: PINTEREST_ROSE }}>developers.pinterest.com</span> → generate an access token with <span style={{ color: PINTEREST_ROSE }}>user_accounts:read</span> scope. token is good for 30 days; refresh as needed.
+      </p>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <input value={token} onChange={e => setToken(e.target.value)} placeholder="Pinterest access token" type="password"
+          style={{ flex: 1, background: 'var(--c-surface-2)', border: '1px solid var(--c-border-2)', borderRadius: '6px', outline: 'none', ...mono, fontSize: '0.65rem', color: 'var(--c-fg)', padding: '0.55rem 0.75rem' }}
+        />
+        <button onClick={saveSetup} disabled={!token}
+          style={{ ...mono, fontSize: '0.58rem', color: PINTEREST_ROSE, background: 'none', border: `1px solid ${PINTEREST_ROSE}`, borderRadius: '4px', padding: '0.5rem 1.25rem', cursor: 'pointer', opacity: !token ? 0.4 : 1, whiteSpace: 'nowrap' }}
+        >connect</button>
+      </div>
+    </div>
+  )
+
+  const tileCount = data ? [1, data.monthlyViews != null ? 1 : 0, 1, 1].filter(Boolean).length : 4
+
+  return (
+    <div>
+      <ApiPanelHeader
+        subtitle={data?.username ? `@${data.username}` : undefined}
+        lastFetch={lastFetch}
+        loading={loading}
+        onRefresh={() => refresh(lsTok())}
+        onSetup={() => setSetup(true)}
+        refreshColor={PINTEREST_ROSE}
+      />
+      {error && <p style={{ ...mono, fontSize: '0.6rem', color: '#E87171', marginBottom: '0.75rem' }}>{error}</p>}
+      {loading && !data
+        ? <SkeletonRow cols={4} />
+        : data
+        ? (
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${tileCount}, 1fr)`, gap: '0.75rem' }}>
+            <ApiStatTile label="followers"    value={fmtFollowers(data.followers)}  color={PINTEREST_ROSE} />
+            {data.monthlyViews != null && <ApiStatTile label="monthly views" value={fmtFollowers(data.monthlyViews)} color={PINTEREST_ROSE} />}
+            <ApiStatTile label="pins"         value={data.pins.toLocaleString()}    color={PINTEREST_ROSE} />
+            <ApiStatTile label="boards"       value={data.boards.toLocaleString()}  color={PINTEREST_ROSE} />
+          </div>
+        ) : (
+          <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>no data — click refresh to load</p>
+        )
+      }
+    </div>
+  )
+}
+
+function TikTokApiPanel({ manualFollowers }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '1rem' }}>
+        <div style={{ padding: '1rem', background: 'var(--c-surface-2)', borderRadius: '0.5rem', border: '1px solid var(--c-border-2)' }}>
+          <p style={{ ...mono, fontSize: '0.48rem', letterSpacing: '0.15em', color: '#ffffff', textTransform: 'uppercase', marginBottom: '0.3rem' }}>followers</p>
+          <p style={{ ...serif, fontSize: '1.6rem', color: 'var(--c-fg)', lineHeight: 1 }}>
+            {fmtFollowers(manualFollowers) === '—' ? '—' : fmtFollowers(manualFollowers)}
+          </p>
+          <p style={{ ...mono, fontSize: '0.42rem', color: 'var(--c-dim)', marginTop: '0.3rem' }}>update in empire numbers</p>
+        </div>
+        <div style={{ padding: '1rem', background: 'var(--c-surface-2)', borderRadius: '0.5rem', border: '1px solid var(--c-border-1)' }}>
+          <p style={{ ...mono, fontSize: '0.5rem', letterSpacing: '0.12em', color: 'var(--c-amber, #C4A96E)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>api access — pending developer approval</p>
+          <p style={{ ...sans, fontSize: '0.72rem', color: 'var(--c-muted)', lineHeight: 1.6, marginBottom: '0.5rem' }}>
+            TikTok's analytics API requires developer app review. apply at{' '}
+            <span style={{ color: '#ffffff' }}>developers.tiktok.com</span>{' '}
+            under Content Posting API or Research API. once approved, we can wire up live video stats.
+          </p>
+          <p style={{ ...mono, fontSize: '0.5rem', color: 'var(--c-dim)' }}>scopes needed: video.list · user.info.basic</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PlatformIntelligencePanel({ platformStats, onSync }) {
+  const [tab, setTab] = useState('youtube')
+  const TAB_META = {
+    youtube:   { label: 'YouTube',   color: GOLD },
+    pinterest: { label: 'Pinterest', color: PINTEREST_ROSE },
+    tiktok:    { label: 'TikTok',    color: '#ffffff' },
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.25rem' }}>
+        {PLAT_TABS.map(t => {
+          const m = TAB_META[t]
+          const active = tab === t
+          return (
+            <button key={t} onClick={() => setTab(t)}
+              style={{
+                ...mono, fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase',
+                padding: '0.35rem 1rem', borderRadius: '2rem', cursor: 'pointer',
+                background: active ? 'rgba(0,0,0,0.15)' : 'var(--c-surface-2)',
+                border: active ? `1px solid ${m.color}` : '1px solid var(--c-border-2)',
+                color: active ? m.color : 'var(--c-muted)',
+                transition: 'all 0.15s',
+              }}
+            >{m.label}</button>
+          )
+        })}
+      </div>
+      {tab === 'youtube'   && <YouTubePanel   onSubscriberSync={n => onSync?.('youtube',   n)} />}
+      {tab === 'pinterest' && <PinterestPanel onFollowerSync={n   => onSync?.('pinterest', n)} />}
+      {tab === 'tiktok'    && <TikTokApiPanel manualFollowers={platformStats.tiktok} />}
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────
 
 export default function VileCorpDashboard() {
@@ -636,6 +980,12 @@ export default function VileCorpDashboard() {
   const savePlatform = (id, val) => {
     setPlatformStats(prev => ({ ...prev, [id]: val }))
     if (userId) upsertPlatform(userId, id, val)
+  }
+
+  const syncFromApi = (platform, count) => {
+    const val = count.toString()
+    setPlatformStats(prev => ({ ...prev, [platform]: val }))
+    if (userId) upsertPlatform(userId, platform, val)
   }
 
   const savePipeline = (id, state) => {
@@ -723,6 +1073,11 @@ export default function VileCorpDashboard() {
           </p>
           <EmpireNumbers stats={platformStats} onChange={savePlatform} />
         </div>
+
+        {/* Platform intelligence */}
+        <Panel title="platform intelligence // live analytics" accent={GOLD} style={{ marginBottom: '1rem' }}>
+          <PlatformIntelligencePanel platformStats={platformStats} onSync={syncFromApi} />
+        </Panel>
 
         {/* Phase + Revenue row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1rem', marginBottom: '1rem' }}>

@@ -1,8 +1,15 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { createClient } from '@supabase/supabase-js'
 import ThemeDropdown from '../components/ThemeDropdown'
 import { supabase } from '../lib/supabase'
+
+const vilecorpSupabase = (() => {
+  const url = import.meta.env.VITE_VILECORP_SUPABASE_URL
+  const key = import.meta.env.VITE_VILECORP_SUPABASE_ANON_KEY
+  return url && key ? createClient(url, key, { auth: { persistSession: false } }) : null
+})()
 
 // ── Constants ─────────────────────────────────────────────────────
 
@@ -473,6 +480,82 @@ function PhaseProgress({ currentPhase, onChange }) {
   )
 }
 
+// ── Waitlist ──────────────────────────────────────────────────────
+
+function WaitlistPanel() {
+  const [entries, setEntries] = useState(null)
+  const [copied, setCopied]   = useState('')
+
+  useEffect(() => {
+    if (!vilecorpSupabase) return
+    vilecorpSupabase
+      .from('waitlist')
+      .select('id, email, list, created_at')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setEntries(data ?? []))
+  }, [])
+
+  function copyEmails(list) {
+    const emails = (entries || [])
+      .filter(e => e.list === list)
+      .map(e => e.email)
+      .join(', ')
+    navigator.clipboard.writeText(emails)
+    setCopied(list)
+    setTimeout(() => setCopied(''), 2000)
+  }
+
+  if (!vilecorpSupabase) return (
+    <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)' }}>
+      add VITE_VILECORP_SUPABASE_URL + VITE_VILECORP_SUPABASE_ANON_KEY to load waitlist
+    </p>
+  )
+
+  if (!entries) return (
+    <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)' }}>loading…</p>
+  )
+
+  if (entries.length === 0) return (
+    <p style={{ ...mono, fontSize: '0.62rem', color: 'var(--c-dim)', fontStyle: 'italic' }}>no signups yet.</p>
+  )
+
+  const lists = [...new Set(entries.map(e => e.list))].sort()
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {lists.map(list => {
+        const group = entries.filter(e => e.list === list)
+        return (
+          <div key={list}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <p style={{ ...mono, fontSize: '0.52rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: GOLD }}>{list}</p>
+                <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-dim)' }}>{group.length}</span>
+              </div>
+              <button
+                onClick={() => copyEmails(list)}
+                style={{ ...mono, fontSize: '0.5rem', color: copied === list ? 'var(--c-up)' : 'var(--c-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.1em' }}
+              >
+                {copied === list ? '✓ copied' : 'copy emails'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {group.map(entry => (
+                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'var(--c-surface-2)', borderRadius: '4px', border: '1px solid var(--c-border-1)' }}>
+                  <span style={{ ...mono, fontSize: '0.68rem', color: 'var(--c-fg)' }}>{entry.email}</span>
+                  <span style={{ ...mono, fontSize: '0.48rem', color: 'var(--c-dim)' }}>
+                    {entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────
 
 export default function VileCorpDashboard() {
@@ -657,6 +740,11 @@ export default function VileCorpDashboard() {
             />
           </Panel>
         </div>
+
+        {/* Waitlist */}
+        <Panel title="waitlist // vilecorp signups" accent={GOLD}>
+          <WaitlistPanel />
+        </Panel>
 
       </div>
     </main>
